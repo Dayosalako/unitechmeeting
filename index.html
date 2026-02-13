@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unitech Global Meeting | Secure Portal</title>
+    <script src="https://unpkg.com/@daily-co/daily-js"></script>
+    
+    <style>
+        /* Modern Professional Styling */
+        :root {
+            --navy: #001f3f;
+            --accent: #0078d4;
+            --light-gray: #f4f7f9;
+            --text-dark: #333;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-dark);
+        }
+
+        /* Background Gradient */
+        body {
+            background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Entry Card */
+        #setup-container, #post-meeting-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            transition: all 0.3s ease;
+        }
+
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--navy);
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 { color: var(--navy); }
+
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--navy);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--accent);
+        }
+
+        /* Meeting Frame - Full Screen */
+        #meeting-frame {
+            display: none; /* Hidden until join */
+            width: 100vw;
+            height: 100vh;
+            background: black;
+        }
+
+        .footer-credit {
+            position: absolute;
+            bottom: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+        }
+
+        /* Admin Button Styling */
+        #admin-download-btn {
+            display: none; /* Hidden by default */
+            margin-top: 20px;
+            background-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="setup-container">
+        <img src="logo.png" alt="Unitech Logo" class="logo" onerror="this.style.display='none'">
+        <h1>Unitech Global Resources Limited</h1>
+        <p>Enter your full name to join the secure session</p>
+        
+        <input type="text" id="username" placeholder="Full Name" required>
+        <button onclick="startMeeting()">Join Meeting Now</button>
+    </div>
+
+    <div id="meeting-frame"></div>
+
+    <div id="post-meeting-container" style="display: none;">
+        <img src="logo.png" alt="Unitech Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
+        <h2>Meeting Concluded</h2>
+        <p>The attendance has been logged. Thank you for participating.</p>
+        
+        <button id="admin-download-btn" onclick="openMinutes()">📂 Download Meeting Minutes</button>
+        
+        <br><br>
+        <button onclick="window.location.reload()" style="background: #666; width: auto; padding: 10px 20px;">Return to Lobby</button>
+    </div>
+
+    <div class="footer-credit" id="footer-text">Powered by Zion Netcom Solutions Limited Systems</div>
+
+    <script>
+        let callFrame;
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
+
+        // --- ADMIN PROTECTION LOGIC ---
+        function revealAdminButton() {
+            const secret = prompt("Enter Admin Password:");
+            if (secret === "Salako2020") { // Change this to your preferred password
+                document.getElementById('admin-download-btn').style.display = "block";
+            } else {
+                alert("Incorrect Password.");
+            }
+        }
+
+        function openMinutes() {
+            window.open("https://app.tactiq.io/meetings", "_blank");
+        }
+        // ------------------------------
+
+        async function startMeeting() {
+            const userName = document.getElementById('username').value;
+            if (!userName) { 
+                alert("Name is required to maintain the attendance log."); 
+                return; 
+            }
+
+            // UI Transition
+            document.getElementById('setup-container').style.display = 'none';
+            document.getElementById('footer-text').style.display = 'none';
+            document.getElementById('meeting-frame').style.display = 'block';
+
+            // 1. Log Join to Google Sheet
+            try {
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ name: userName, action: "Joined Meeting" })
+                });
+            } catch (e) { console.log("Logging error", e); }
+
+            // 2. Start Video Call
+            callFrame = window.DailyIframe.createFrame(document.getElementById('meeting-frame'), {
+                showLeaveButton: true,
+                iframeStyle: {
+                    width: '100%',
+                    height: '100%',
+                    border: '0'
+                }
+            });
+            
+            callFrame.join({ 
+                url: 'https://dayosalako.daily.co/unitech-meeting', 
+                userName: userName 
+            });
+
+            // 3. Handle Departure
+            callFrame.on('left-meeting', () => {
+                // Log Leave to Google Sheet
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ name: userName, action: "Left Meeting" })
+                });
+                
+                // Hide the meeting and show the post-meeting area
+                document.getElementById('meeting-frame').style.display = 'none';
+                document.getElementById('post-meeting-container').style.display = 'block';
+                
+                // CRITICAL FIX: Removed the automatic window.location.reload() 
+                // that was previously outside the event listener scope.
+            });
+        }
+    </script>
+</body>
+</html>
