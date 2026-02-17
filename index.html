@@ -33,7 +33,7 @@
         }
 
         /* Entry Card */
-        #setup-container, #post-meeting-container {
+        #setup-container {
             background: rgba(255, 255, 255, 0.95);
             padding: 40px;
             border-radius: 15px;
@@ -107,6 +107,18 @@
             background: black;
         }
 
+        /* Post Meeting Container - Restored styling */
+        #post-meeting-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            display: none; 
+            text-align: center; 
+            width: 100%;
+            max-width: 400px;
+        }
+
         .footer-credit {
             position: absolute;
             bottom: 20px;
@@ -130,16 +142,16 @@
         <p>Enter your full name to join the secure session</p>
         
         <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba; text-align: left;">
-    ⚠️ <strong>Admin Note:</strong> Please ensure your <strong>Tactiq Extension</strong> is active before joining to capture minutes.
-</div>
+            ⚠️ <strong>Admin Note:</strong> Please ensure your <strong>Tactiq Extension</strong> is active before joining to capture minutes.
+        </div>
         
-       <input type="text" id="username" placeholder="Full Name" required oninput="checkAdmin()">  
+        <input type="text" id="username" placeholder="Full Name" required oninput="checkAdmin()">
         <button onclick="startMeeting()">Join Meeting Now</button>
     </div>
 
     <div id="meeting-frame"></div>
 
-    <div id="post-meeting-container" style="display: none;">
+    <div id="post-meeting-container">
         <img src="logo.png" alt="Unitech Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
         <h2>Meeting Concluded</h2>
         <p>The attendance has been logged. Thank you for participating.</p>
@@ -156,10 +168,22 @@
         let callFrame;
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
 
+        // --- ADMIN VISIBILITY LOGIC ---
+        function checkAdmin() {
+            const name = document.getElementById('username').value.toLowerCase();
+            const adminNote = document.getElementById('admin-note');
+            // Show only if name matches
+            if (name === "dayo salako") { 
+                adminNote.style.display = "block";
+            } else {
+                adminNote.style.display = "none";
+            }
+        }
+
         // --- ADMIN PROTECTION LOGIC ---
         function revealAdminButton() {
             const secret = prompt("Enter Admin Password:");
-            if (secret === "Salako2020") { // Change this to your preferred password
+            if (secret === "Salako2020") {
                 document.getElementById('admin-download-btn').style.display = "block";
             } else {
                 alert("Incorrect Password.");
@@ -169,7 +193,6 @@
         function openMinutes() {
             window.open("https://app.tactiq.io/meetings", "_blank");
         }
-        // ------------------------------
 
         async function startMeeting() {
             const userName = document.getElementById('username').value;
@@ -207,39 +230,18 @@
                 userName: userName 
             });
 
-            // This function checks the name typed and reveals the note only for you
-function checkAdmin() {
-    const name = document.getElementById('username').value.toLowerCase();
-    const adminNote = document.getElementById('admin-note');
-    
-    // Replace "dayo salako" with your actual name (in lowercase)
-    if (name === "dayo salako") { 
-        adminNote.style.display = "block";
-    } else {
-        adminNote.style.display = "none";
-    }
-}
-            
             // 3. Handle Departure
             callFrame.on('left-meeting', () => {
-                // Log Leave to Google Sheet
                 fetch(scriptURL, {
                     method: 'POST',
                     mode: 'no-cors',
                     body: JSON.stringify({ name: userName, action: "Left Meeting" })
                 });
                 
-                // Hide the meeting and show the post-meeting area
                 document.getElementById('meeting-frame').style.display = 'none';
                 document.getElementById('post-meeting-container').style.display = 'block';
-                
-                // CRITICAL FIX: Removed the automatic window.location.reload() 
-                // that was previously outside the event listener scope.
             });
         }
     </script>
 </body>
-
 </html>
-
-
