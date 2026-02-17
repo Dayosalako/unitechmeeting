@@ -129,7 +129,11 @@
         <h1>Unitech Global Resources Limited</h1>
         <p>Enter your full name to join the secure session</p>
         
-        <input type="text" id="username" placeholder="Full Name" required>
+        <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba; text-align: left;">
+    ⚠️ <strong>Admin Note:</strong> Please ensure your <strong>Tactiq Extension</strong> is active before joining to capture minutes.
+</div>
+        
+       <input type="text" id="username" placeholder="Full Name" required oninput="checkAdmin()">  
         <button onclick="startMeeting()">Join Meeting Now</button>
     </div>
 
@@ -203,6 +207,19 @@
                 userName: userName 
             });
 
+            // This function checks the name typed and reveals the note only for you
+function checkAdmin() {
+    const name = document.getElementById('username').value.toLowerCase();
+    const adminNote = document.getElementById('admin-note');
+    
+    // Replace "dayo salako" with your actual name (in lowercase)
+    if (name === "dayo salako") { 
+        adminNote.style.display = "block";
+    } else {
+        adminNote.style.display = "none";
+    }
+}
+            
             // 3. Handle Departure
             callFrame.on('left-meeting', () => {
                 // Log Leave to Google Sheet
@@ -224,4 +241,5 @@
 </body>
 
 </html>
+
 
