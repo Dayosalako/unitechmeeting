@@ -150,8 +150,12 @@
         <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba; text-align: left;">
             ⚠️ <strong>Admin Note:</strong> Please ensure your <strong>Tactiq Extension</strong> is active before joining to capture minutes.
         </div>
+
+        <div style="background: #e7f3ff; color: #004085; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid #b8daff; text-align: left;">
+    ℹ️ <strong>Identification:</strong> To ensure accurate attendance logging, please enter your <strong>official full name</strong>. Pseudonyms or nicknames will not be recognized by the system.
+</div>
         
-        <input type="text" id="username" placeholder="Full Name" required oninput="checkAdmin()">
+        <input type="text" id="username" placeholder="Full Name" required minlength="4" oninput="checkAdmin()">
         <button onclick="startMeeting()">Join Meeting Now</button>
     </div>
 
@@ -202,8 +206,8 @@
 
         async function startMeeting() {
             const userName = document.getElementById('username').value;
-            if (!userName) { 
-                alert("Name is required to maintain the attendance log."); 
+            if (!userName.length < 4) { 
+                alert("Please enter your full official name. Names shorter than 4 characters are not permitted."); 
                 return; 
             }
 
@@ -251,5 +255,6 @@
     </script>
 </body>
 </html>
+
 
 
