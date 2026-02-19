@@ -105,6 +105,12 @@
             background-color: var(--accent);
         }
 
+        <div id="session-header" style="display: none; background: white; width: 100%; padding: 10px 0; text-align: center; border-bottom: 2px solid var(--accent); position: fixed; top: 0; z-index: 999;">
+    <h3 id="meeting-title-text" style="margin: 0; color: var(--navy); font-family: 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: 1px;">
+        Unitech Global Resources Ltd: Official Weekly Meeting                    
+  
+    </h3>
+</div>
         /* Meeting Frame - Full Screen */
         #meeting-frame {
             display: none; /* Hidden until join */
@@ -212,10 +218,16 @@
             }
 
             // UI Transition
-            document.getElementById('setup-container').style.display = 'none';
-            document.getElementById('footer-text').style.display = 'none';
-            document.getElementById('meeting-frame').style.display = 'block';
+           // UI Transition
+document.getElementById('setup-container').style.display = 'none';
+document.getElementById('footer-text').style.display = 'none';
+document.getElementById('meeting-frame').style.display = 'block';
 
+// NEW: Show the Session Header
+document.getElementById('session-header').style.display = 'block';
+// Adjust the meeting frame to sit below the header
+document.getElementById('meeting-frame').style.marginTop = '50px'; 
+document.getElementById('meeting-frame').style.height = 'calc(100vh - 50px)';
             // 1. Log Join to Google Sheet
             try {
                 fetch(scriptURL, {
@@ -242,19 +254,27 @@
 
             // 3. Handle Departure
             callFrame.on('left-meeting', () => {
-                fetch(scriptURL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({ name: userName, action: "Left Meeting" })
-                });
-                
-                document.getElementById('meeting-frame').style.display = 'none';
-                document.getElementById('post-meeting-container').style.display = 'block';
-            });
-        }
+    // 1. Log the departure to Google Sheets
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ name: userName, action: "Left Meeting" })
+    });
+    
+    // 2. Hide the session-specific UI elements
+    document.getElementById('session-header').style.display = 'none'; // NEW: Hides the title
+    document.getElementById('meeting-frame').style.display = 'none';
+    
+    // 3. Reset the frame margins (so the end screen looks normal)
+    document.getElementById('meeting-frame').style.marginTop = '0px';
+
+    // 4. Show the final "Thank You" screen
+    document.getElementById('post-meeting-container').style.display = 'block';
+});
     </script>
 </body>
 </html>
+
 
 
 
