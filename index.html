@@ -6,14 +6,14 @@
     <title>Unitech Global Meeting | Secure Portal</title>
     <script src="https://unpkg.com/@daily-co/daily-js"></script>
     
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="logo.png">
-<link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="manifest" href="manifest.json">
 
     <style>
-        /* Modern Professional Styling */
+        /* Modern Professional Styling - RESTORED FULL */
         :root {
             --navy: #001f3f;
             --accent: #0078d4;
@@ -39,7 +39,7 @@
         }
 
         /* Entry Card */
-        #setup-container {
+        #setup-container, #post-meeting-container {
             background: rgba(255, 255, 255, 0.95);
             padding: 40px;
             border-radius: 15px;
@@ -105,30 +105,12 @@
             background-color: var(--accent);
         }
 
-        <div id="session-header" style="display: none; background: white; width: 100%; padding: 10px 0; text-align: center; border-bottom: 2px solid var(--accent); position: fixed; top: 0; z-index: 999;">
-    <h3 id="meeting-title-text" style="margin: 0; color: var(--navy); font-family: 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: 1px;">
-        Unitech Global Resources Ltd: Official Weekly Meeting                    
-  
-    </h3>
-</div>
         /* Meeting Frame - Full Screen */
         #meeting-frame {
-            display: none; /* Hidden until join */
+            display: none; 
             width: 100vw;
             height: 100vh;
             background: black;
-        }
-
-        /* Post Meeting Container - Restored styling */
-        #post-meeting-container {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            display: none; 
-            text-align: center; 
-            width: 100%;
-            max-width: 400px;
         }
 
         .footer-credit {
@@ -140,13 +122,23 @@
 
         /* Admin Button Styling */
         #admin-download-btn {
-            display: none; /* Hidden by default */
+            display: none; 
             margin-top: 20px;
             background-color: #28a745;
         }
     </style>
 </head>
 <body>
+
+    <div id="session-header" style="display: none; background: white; width: 100%; padding: 10px 0; text-align: center; border-bottom: 2px solid var(--accent); position: fixed; top: 0; z-index: 999;">
+        <h3 style="margin: 0; color: var(--navy); font-family: 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: 1px;">
+            Unitech Global Resources Ltd: Official Weekly Meeting
+        </h3>
+    </div>
+
+    <div id="mute-reminder" style="display: none; position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0, 31, 63, 0.9); color: white; padding: 10px 20px; border-radius: 30px; z-index: 1000; font-size: 13px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid var(--accent);">
+        🎤 Please <strong>Mute your Microphone</strong> unless you are speaking.
+    </div>
 
     <div id="setup-container">
         <img src="logo.png" alt="Unitech Logo" class="logo" onerror="this.style.display='none'">
@@ -158,8 +150,8 @@
         </div>
 
         <div style="background: #e7f3ff; color: #004085; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid #b8daff; text-align: left;">
-    ℹ️ <strong>Identification:</strong> To ensure accurate attendance logging, please enter your <strong>official full name</strong>. Pseudonyms or nicknames will not be recognized by the system.
-</div>
+            ℹ️ <strong>Identification:</strong> To ensure accurate attendance logging, please enter your <strong>official full name</strong>. Pseudonyms or nicknames will not be recognized by the system.
+        </div>
         
         <input type="text" id="username" placeholder="Full Name" required minlength="4" oninput="checkAdmin()">
         <button onclick="startMeeting()">Join Meeting Now</button>
@@ -167,13 +159,11 @@
 
     <div id="meeting-frame"></div>
 
-    <div id="post-meeting-container">
+    <div id="post-meeting-container" style="display: none;">
         <img src="logo.png" alt="Unitech Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
         <h2>Meeting Concluded</h2>
         <p>The attendance has been logged. Thank you for participating.</p>
-        
         <button id="admin-download-btn" onclick="openMinutes()">📂 Download Meeting Minutes</button>
-        
         <br><br>
         <button onclick="window.location.reload()" style="background: #666; width: auto; padding: 10px 20px;">Return to Lobby</button>
     </div>
@@ -184,11 +174,9 @@
         let callFrame;
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
 
-        // --- ADMIN VISIBILITY LOGIC ---
         function checkAdmin() {
             const name = document.getElementById('username').value.toLowerCase();
             const adminNote = document.getElementById('admin-note');
-            // Show only if name matches
             if (name === "dayo salako") { 
                 adminNote.style.display = "block";
             } else {
@@ -196,7 +184,6 @@
             }
         }
 
-        // --- ADMIN PROTECTION LOGIC ---
         function revealAdminButton() {
             const secret = prompt("Enter Admin Password:");
             if (secret === "Salako2020") {
@@ -211,24 +198,24 @@
         }
 
         async function startMeeting() {
-            const userName = document.getElementById('username').value;
-            if (!userName.length < 4) { 
+            const userName = document.getElementById('username').value.trim();
+            
+            // Name validation rule
+            if (userName.length < 4) { 
                 alert("Please enter your full official name. Names shorter than 4 characters are not permitted."); 
                 return; 
             }
 
             // UI Transition
-           // UI Transition
-document.getElementById('setup-container').style.display = 'none';
-document.getElementById('footer-text').style.display = 'none';
-document.getElementById('meeting-frame').style.display = 'block';
+            document.getElementById('setup-container').style.display = 'none';
+            document.getElementById('footer-text').style.display = 'none';
+            document.getElementById('meeting-frame').style.display = 'block';
+            
+            // Show Header and adjust frame
+            document.getElementById('session-header').style.display = 'block';
+            document.getElementById('meeting-frame').style.marginTop = '50px'; 
+            document.getElementById('meeting-frame').style.height = 'calc(100vh - 50px)';
 
-// NEW: Show the Session Header
-document.getElementById('session-header').style.display = 'block';
-// Adjust the meeting frame to sit below the header
-document.getElementById('meeting-frame').style.marginTop = '50px'; 
-document.getElementById('meeting-frame').style.height = 'calc(100vh - 50px)';
-            // 1. Log Join to Google Sheet
             try {
                 fetch(scriptURL, {
                     method: 'POST',
@@ -237,14 +224,9 @@ document.getElementById('meeting-frame').style.height = 'calc(100vh - 50px)';
                 });
             } catch (e) { console.log("Logging error", e); }
 
-            // 2. Start Video Call
             callFrame = window.DailyIframe.createFrame(document.getElementById('meeting-frame'), {
                 showLeaveButton: true,
-                iframeStyle: {
-                    width: '100%',
-                    height: '100%',
-                    border: '0'
-                }
+                iframeStyle: { width: '100%', height: '100%', border: '0' }
             });
             
             callFrame.join({ 
@@ -252,29 +234,26 @@ document.getElementById('meeting-frame').style.height = 'calc(100vh - 50px)';
                 userName: userName 
             });
 
-            // 3. Handle Departure
-            callFrame.on('left-meeting', () => {
-    // 1. Log the departure to Google Sheets
-    fetch(scriptURL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ name: userName, action: "Left Meeting" })
-    });
-    
-    // 2. Hide the session-specific UI elements
-    document.getElementById('session-header').style.display = 'none'; // NEW: Hides the title
-    document.getElementById('meeting-frame').style.display = 'none';
-    
-    // 3. Reset the frame margins (so the end screen looks normal)
-    document.getElementById('meeting-frame').style.marginTop = '0px';
+            // Mute Reminder logic
+            setTimeout(() => {
+                const reminder = document.getElementById('mute-reminder');
+                reminder.style.display = 'block';
+                setTimeout(() => {
+                    reminder.style.display = 'none';
+                }, 7000);
+            }, 5000);
 
-    // 4. Show the final "Thank You" screen
-    document.getElementById('post-meeting-container').style.display = 'block';
-});
+            callFrame.on('left-meeting', () => {
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ name: userName, action: "Left Meeting" })
+                });
+                document.getElementById('session-header').style.display = 'none';
+                document.getElementById('meeting-frame').style.display = 'none';
+                document.getElementById('post-meeting-container').style.display = 'block';
+            });
+        }
     </script>
 </body>
 </html>
-
-
-
-
