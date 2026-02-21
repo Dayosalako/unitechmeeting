@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+<!DOCTYPE html>                                         
+                                      
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -56,6 +57,14 @@
             border: 1px solid #feb2b2;
         }
 
+        /* NEW: Attendance Counter Styling */
+        #attendance-counter {
+            display: none; font-size: 12px; font-weight: 700; padding: 10px;
+            border-radius: 8px; margin-bottom: 15px;
+            background: #ebf8ff; color: #2b6cb0;
+            border: 1px solid #bee3f8;
+        }
+
         input {
             width: 100%; padding: 12px 15px; margin-bottom: 15px;
             border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none;
@@ -86,7 +95,7 @@
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
         #admin-download-btn { display: none; margin-top: 20px; background-color: var(--success); }
 
-        /* NEW: PWA Install Styling */
+        /* PWA Install Styling - RESTORED */
         #install-area {
             display: none; background: #eef6ff; border: 1px solid #0078d4;
             padding: 10px; border-radius: 8px; margin-bottom: 15px;
@@ -115,9 +124,12 @@
         
         <div id="time-status">Syncing with Nigeria Time...</div>
 
+        <div id="attendance-counter">👥 Live Attendance: Fetching...</div>
+
         <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #ffeeba;">
             ⚠️ <strong>Admin Checklist / Bypass Active:</strong><br>
             • Ensure AI Bot is synced via Calendar.<br>
+            • Simultaneous multi-admin login enabled.<br>
             • You have 24/7 Access to this Room.
         </div>
 
@@ -164,17 +176,16 @@
     <div class="footer-credit">Powered by Zion Netcom Solutions Limited</div>
 
     <script>
-        const authURL = "https://script.google.com/macros/s/AKfycbycFspIkYThsmblFNy4DNl0lJKrZO3gU6jx_fkyUQlpeAuNzlI8ykFgc-v0mKAwF9lC/exec"; 
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
+        // UPDATED APPSCRIPT URL
+        const authURL = "https://script.google.com/macros/s/AKfycbzue0dhfA5yc-aOEeVZcBYYs-l-q5fFfMTHCtlLTjLvJX0lzOQBwyknhPKgCYD_81Oy/exec"; 
+        const scriptURL = authURL; 
         const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
         
-        // --- BYPASS USERS: NAMES THAT CAN ENTER ANYTIME ---
         const BYPASS_LIST = ["dayosalako", "temitopeadeyemi", "faizeljappie", "kabiroyekunle"];
 
         let api = null;
         let isGlobalMeetingTime = false;
 
-        // --- TIME GATE LOGIC: FRIDAY 8:55 AM NIGERIA ---
         function updateClock() {
             const now = new Date();
             const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
@@ -183,28 +194,46 @@
             const mins = nigeria.getMinutes();
             const statusBox = document.getElementById('time-status');
             const loginBtn = document.getElementById('login-btn');
+            const counterBox = document.getElementById('attendance-counter');
 
             const isFriday = (day === 5);
             const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
-            if (isFriday && isTime) {
+            if (isBypassUser()) {
+                statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+                statusBox.innerHTML = "💎 Bypass Account Recognized";
+                loginBtn.disabled = false; loginBtn.innerText = "Admin Bypass Access";
+                loginBtn.classList.add('admin-mode');
+                document.getElementById('admin-note').style.display = "block";
+                counterBox.style.display = "block";
+                fetchAttendance();
+            } else if (isFriday && isTime) {
                 isGlobalMeetingTime = true;
-                if (!isBypassUser()) {
-                    statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-                    statusBox.innerHTML = "✅ Meeting is OPEN (Starts 9:00 AM)";
-                    loginBtn.disabled = false; loginBtn.innerText = "Login & Join Meeting";
-                    loginBtn.classList.remove('admin-mode');
-                }
+                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
+                statusBox.innerHTML = "✅ Meeting is OPEN (Starts 9:00 AM)";
+                loginBtn.disabled = false; loginBtn.innerText = "Login & Join Meeting";
+                loginBtn.classList.remove('admin-mode');
+                document.getElementById('admin-note').style.display = "none";
+                counterBox.style.display = "none";
             } else {
                 isGlobalMeetingTime = false;
-                if (!isBypassUser()) {
-                    loginBtn.disabled = true;
-                    statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-                    statusBox.innerHTML = "🔒 Closed. Unlocks Friday at 8:55 AM.";
-                    loginBtn.innerText = "Meeting Locked";
-                    loginBtn.classList.remove('admin-mode');
-                }
+                loginBtn.disabled = true;
+                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
+                statusBox.innerHTML = "🔒 Closed. Unlocks Friday at 8:55 AM.";
+                loginBtn.innerText = "Meeting Locked";
+                loginBtn.classList.remove('admin-mode');
+                document.getElementById('admin-note').style.display = "none";
+                counterBox.style.display = "none";
             }
+        }
+
+        // NEW: Function to get live count from Sheet
+        async function fetchAttendance() {
+            try {
+                const res = await fetch(scriptURL + "?action=getCount");
+                const data = await res.json();
+                document.getElementById('attendance-counter').innerText = `👥 Live Attendance: ${data.count} Staff Online`;
+            } catch (e) { console.log("Counter Error"); }
         }
 
         function isBypassUser() {
@@ -212,25 +241,10 @@
             return BYPASS_LIST.includes(val);
         }
 
-        function checkBypass() {
-            const note = document.getElementById('admin-note');
-            const loginBtn = document.getElementById('login-btn');
-            const statusBox = document.getElementById('time-status');
-
-            if (isBypassUser()) {
-                note.style.display = "block";
-                loginBtn.disabled = false;
-                loginBtn.innerText = "Admin Bypass Access";
-                loginBtn.classList.add('admin-mode');
-                statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-                statusBox.innerHTML = "💎 Bypass Account Recognized";
-            } else {
-                note.style.display = "none";
-                updateClock();
-            }
-        }
+        function checkBypass() { updateClock(); }
 
         setInterval(updateClock, 1000);
+        setInterval(() => { if(isBypassUser()) fetchAttendance(); }, 30000);
         updateClock();
 
         window.onload = () => {
@@ -257,11 +271,11 @@
                     startMeeting(false, result.displayName);
                 } else {
                     alert("Invalid Credentials. Please check with your supervisor.");
-                    checkBypass();
+                    updateClock();
                 }
             } catch (e) {
                 alert("Auth Connection Error. Check your internet.");
-                checkBypass();
+                updateClock();
             }
         }
 
@@ -301,29 +315,19 @@
 
         function logout() { localStorage.clear(); window.location.reload(); }
 
-        // --- SMART INSTALLER LOGIC (Android & iPhone) ---
         const installArea = document.getElementById('install-area');
         const iosNote = document.getElementById('ios-install-note');
         const installBtn = document.getElementById('install-btn');
         let deferredPrompt;
 
-        const isIos = () => {
-          const userAgent = window.navigator.userAgent.toLowerCase();
-          return /iphone|ipad|ipod/.test(userAgent);
-        };
-
+        const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
         const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
 
         window.addEventListener('load', () => {
-            if (isIos() && !isInStandaloneMode()) {
-                iosNote.style.display = 'block';
-            }
+            if (isIos() && !isInStandaloneMode()) iosNote.style.display = 'block';
             window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                if (!isInStandaloneMode()) {
-                    installArea.style.display = 'block';
-                }
+                e.preventDefault(); deferredPrompt = e;
+                if (!isInStandaloneMode()) installArea.style.display = 'block';
             });
             installBtn.addEventListener('click', async () => {
                 if (deferredPrompt) {
@@ -335,9 +339,7 @@
             });
         });
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js');
-        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
     </script>
 </body>
 </html>
