@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Unitech Global Meeting | Secure Portal</title>
-    <script src="https://unpkg.com/@daily-co/daily-js"></script>
+    
+    <script src='https://8x8.vc/vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/external_api.js'></script>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,156 +14,77 @@
     <link rel="manifest" href="manifest.json">
 
     <style>
-        /* Modern Professional Styling - FULL RESTORATION */
         :root {
             --navy: #001f3f;
             --accent: #0078d4;
             --light-gray: #f4f7f9;
             --text-dark: #333;
+            --success: #28a745;
+            --warning: #d9534f;
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
+            margin: 0; padding: 0; height: 100%;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light-gray);
-            color: var(--text-dark);
+            background-color: var(--light-gray); color: var(--text-dark);
             overflow: hidden;
         }
 
-        /* Background Gradient */
         body {
             background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
         }
 
-        /* Entry Card */
+        /* SECTION: UI Containers - RESTORED */
         #setup-container, #post-meeting-container {
             background: rgba(255, 255, 255, 0.95);
-            padding: 40px;
-            border-radius: 15px;
+            padding: 40px; border-radius: 15px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            text-align: center;
-            width: 90%;
-            max-width: 400px;
-            transition: all 0.3s ease;
+            text-align: center; width: 90%; max-width: 400px;
             z-index: 10;
         }
 
-        .logo {
-            max-width: 150px;
-            margin-bottom: 20px;
-        }
+        .logo { max-width: 150px; margin-bottom: 20px; }
+        h1 { color: var(--navy); font-size: 24px; margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        p { color: #666; margin-bottom: 20px; font-size: 14px; }
 
-        h1 {
-            color: var(--navy);
-            font-size: 24px;
-            margin-bottom: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        h2 { color: var(--navy); }
-
-        p {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
+        /* SECTION: Time Lock Styling - RESTORED */
+        #time-status {
+            font-size: 13px; font-weight: 600; padding: 12px;
+            border-radius: 8px; margin-bottom: 20px;
+            background: #fff5f5; color: var(--warning);
+            border: 1px solid #feb2b2;
         }
 
         input {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        input:focus {
-            border-color: var(--accent);
+            width: 100%; padding: 12px 15px; margin-bottom: 15px;
+            border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none;
         }
 
         button {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--navy);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
+            width: 100%; padding: 14px; background-color: var(--navy); color: white;
+            border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: 0.3s;
         }
 
-        button:hover {
-            background-color: var(--accent);
-        }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        /* Meeting UI Elements with Safe Area Spacing */
+        /* Bypass Highlight */
+        .admin-mode { background-color: var(--accent) !important; box-shadow: 0 0 15px rgba(0,120,212,0.5); }
+
+        /* SECTION: Header with Notch Fix - RESTORED */
         #session-header {
-            display: none;
-            background: white;
-            width: 100%;
+            display: none; background: white; width: 100%;
             padding: calc(12px + env(safe-area-inset-top)) 0 12px 0;
-            text-align: center;
-            border-bottom: 2px solid var(--accent);
-            position: fixed;
-            top: 0;
-            z-index: 999;
+            text-align: center; border-bottom: 2px solid var(--accent);
+            position: fixed; top: 0; z-index: 999;
         }
 
-        #session-header h3 {
-            margin: 0;
-            color: var(--navy);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
 
-        #mute-reminder {
-            display: none;
-            position: fixed;
-            top: calc(85px + env(safe-area-inset-top));
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 31, 63, 0.9);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 30px;
-            z-index: 1000;
-            font-size: 13px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            border: 1px solid var(--accent);
-            white-space: nowrap;
-        }
-
-        #meeting-frame {
-            display: none;
-            width: 100vw;
-            background: black;
-        }
-
-        .footer-credit {
-            position: absolute;
-            bottom: 20px;
-            color: rgba(255,255,255,0.5);
-            font-size: 12px;
-        }
-
-        #admin-download-btn {
-            display: none;
-            margin-top: 20px;
-            background-color: #28a745;
-        }
+        #meeting-frame { display: none; width: 100vw; background: black; }
+        .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
+        #admin-download-btn { display: none; margin-top: 20px; background-color: var(--success); }
     </style>
 </head>
 <body>
@@ -171,140 +93,190 @@
         <h3>Unitech Global Resources Ltd: Official Weekly Meeting</h3>
     </div>
 
-    <div id="mute-reminder">
-        🎤 Please <strong>Mute your Microphone</strong> unless you are speaking.
-    </div>
-
     <div id="setup-container">
         <img src="logo.png" alt="Unitech Logo" class="logo" onerror="this.style.display='none'">
-        <h1>Unitech Global Resources Limited</h1>
-        <p>Enter your full name to join the secure session</p>
+        <h1>Staff Portal</h1>
         
-        <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba; text-align: left;">
-            ⚠️ <strong>Admin Note:</strong> Please ensure your <strong>Tactiq Extension</strong> is active before joining to capture minutes.
+        <div id="time-status">Syncing with Nigeria Time...</div>
+
+        <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #ffeeba;">
+            ⚠️ <strong>Admin Checklist / Bypass Active:</strong><br>
+            • Ensure AI Bot is synced via Calendar.<br>
+            • You have 24/7 Access to this Room.
         </div>
 
-        <div style="background: #e7f3ff; color: #004085; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid #b8daff; text-align: left;">
-            ℹ️ <strong>Identification:</strong> To ensure accurate attendance logging, please enter your <strong>official full name</strong>. Name abbreviation or nicknames will not be recognized by the system.
+        <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #c6f6d5;">
+            🤖 <strong>Welcome:</strong> Unitech Global Resources Management welcome you to another weekly meeting.
         </div>
+
+        <input type="text" id="username" placeholder="Username" oninput="checkBypass()">
+        <input type="password" id="staff-password" placeholder="Password">
         
-        <input type="text" id="username" placeholder="Full Name" required minlength="4" oninput="checkAdmin()">
-        <button onclick="startMeeting()">Join Meeting Now</button>
+        <button id="login-btn" onclick="handleLogin()" disabled>Locked</button>
     </div>
 
     <div id="meeting-frame"></div>
 
     <div id="post-meeting-container" style="display: none;">
         <img src="logo.png" alt="Unitech Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
-        <h2>Meeting Concluded. See you next week</h2>
-        <p>The attendance has been logged. Thank you for attending this week meeting.</p>
-        
-        <button id="admin-download-btn" onclick="openMinutes()">📂 Download Meeting Minutes</button>
-        
+        <h2>Meeting Concluded</h2>
+        <p>Attendance has been logged successfully.</p>
+        <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')">📂 Open Otter.ai Minutes</button>
         <br><br>
-        <button onclick="clearSessionAndReload()" style="background: #666; width: auto; padding: 10px 20px;">Return to Lobby</button>
+        <button onclick="logout()" style="background: #666; width: auto; padding: 10px 20px;">Logout & Exit</button>
     </div>
 
-    <div class="footer-credit" id="footer-text">Powered by Zion Netcom Solutions Limited Systems</div>
+    <div class="footer-credit">Powered by Zion Netcom Solutions Limited</div>
 
     <script>
-        let callFrame;
+        // --- API CONFIGURATION ---
+        const authURL = "https://script.google.com/macros/s/AKfycbycFspIkYThsmblFNy4DNl0lJKrZO3gU6jx_fkyUQlpeAuNzlI8ykFgc-v0mKAwF9lC/exec"; 
         const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
+        const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
+        
+        // --- BYPASS USERS: NAMES THAT CAN ENTER ANYTIME ---
+        const BYPASS_LIST = ["dayosalako", "temitopeadeyemi", "faizeljappie", "kabiroyekunle"];
 
-        // --- Handle Refresh/Persistence ---
+        let api = null;
+        let isGlobalMeetingTime = false;
+
+        // --- TIME GATE LOGIC: FRIDAY 8:55 AM NIGERIA ---
+        function updateClock() {
+            const now = new Date();
+            const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+            
+            const day = nigeria.getDay(); // 5 = Friday
+            const hrs = nigeria.getHours();
+            const mins = nigeria.getMinutes();
+            
+            const statusBox = document.getElementById('time-status');
+            const loginBtn = document.getElementById('login-btn');
+
+            const isFriday = (day === 5);
+            const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
+
+            if (isFriday && isTime) {
+                isGlobalMeetingTime = true;
+                if (!isBypassUser()) {
+                    statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
+                    statusBox.innerHTML = "✅ Meeting is OPEN (Starts 9:00 AM)";
+                    loginBtn.disabled = false; loginBtn.innerText = "Login & Join Meeting";
+                    loginBtn.classList.remove('admin-mode');
+                }
+            } else {
+                isGlobalMeetingTime = false;
+                if (!isBypassUser()) {
+                    loginBtn.disabled = true;
+                    statusBox.style.background = "#fff5f5"; statusBox.style.color = var(--warning);
+                    statusBox.innerHTML = "🔒 Closed. Unlocks Friday at 8:55 AM.";
+                    loginBtn.innerText = "Meeting Locked";
+                    loginBtn.classList.remove('admin-mode');
+                }
+            }
+        }
+
+        // --- BYPASS HELPER FUNCTIONS ---
+        function isBypassUser() {
+            const val = document.getElementById('username').value.trim().toLowerCase();
+            return BYPASS_LIST.includes(val);
+        }
+
+        function checkBypass() {
+            const note = document.getElementById('admin-note');
+            const loginBtn = document.getElementById('login-btn');
+            const statusBox = document.getElementById('time-status');
+
+            if (isBypassUser()) {
+                note.style.display = "block";
+                loginBtn.disabled = false;
+                loginBtn.innerText = "Admin Bypass Access";
+                loginBtn.classList.add('admin-mode');
+                statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+                statusBox.innerHTML = "💎 Bypass Account Recognized";
+            } else {
+                note.style.display = "none";
+                updateClock();
+            }
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- PERSISTENT LOGIN CHECK ---
         window.onload = () => {
-            const savedName = sessionStorage.getItem('unitech_user');
-            if (savedName) {
-                document.getElementById('username').value = savedName;
-                startMeeting(true); // isAutoLogin = true
+            const savedName = localStorage.getItem('unitech_display_name');
+            const isLoggedIn = localStorage.getItem('unitech_authenticated');
+            if (isLoggedIn === "true" && savedName && (isGlobalMeetingTime || isBypassUser())) {
+                startMeeting(true, savedName);
             }
         };
 
-        function checkAdmin() {
-            const name = document.getElementById('username').value.toLowerCase();
-            const adminNote = document.getElementById('admin-note');
-            adminNote.style.display = (name === "dayo salako") ? "block" : "none";
-        }
+        // --- DATABASE LOGIN LOGIC ---
+        async function handleLogin() {
+            const userIn = document.getElementById('username').value.trim().toLowerCase();
+            const passIn = document.getElementById('staff-password').value;
+            const btn = document.getElementById('login-btn');
 
-        function revealAdminButton() {
-            const secret = prompt("Enter Admin Password:");
-            if (secret === "Salako2020") {
-                document.getElementById('admin-download-btn').style.display = "block";
-            } else { alert("Incorrect Password."); }
-        }
+            btn.innerText = "Authenticating..."; btn.disabled = true;
 
-        function openMinutes() { window.open("https://app.tactiq.io/meetings", "_blank"); }
+            try {
+                const response = await fetch(authURL, { method: 'POST', body: JSON.stringify({ username: userIn, password: passIn }) });
+                const result = await response.json();
 
-        async function startMeeting(isAutoLogin = false) {
-            const userName = document.getElementById('username').value.trim();
-            
-            if (userName.length < 4) { 
-                alert("Please enter your full official name. Names shorter than 4 characters are not permitted."); 
-                return; 
+                if (result.status === "success") {
+                    localStorage.setItem('unitech_user_id', userIn);
+                    localStorage.setItem('unitech_display_name', result.displayName);
+                    localStorage.setItem('unitech_authenticated', "true");
+                    startMeeting(false, result.displayName);
+                } else {
+                    alert("Invalid Credentials. Please check with your supervisor.");
+                    checkBypass();
+                }
+            } catch (e) {
+                alert("Auth Connection Error. Check your internet.");
+                checkBypass();
             }
+        }
 
-            // Save for refresh persistence
-            sessionStorage.setItem('unitech_user', userName);
-
+        async function startMeeting(isAuto, displayName) {
             document.getElementById('setup-container').style.display = 'none';
-            document.getElementById('footer-text').style.display = 'none';
-            
             const header = document.getElementById('session-header');
             const frame = document.getElementById('meeting-frame');
-            header.style.display = 'block';
-            frame.style.display = 'block';
+            header.style.display = 'block'; frame.style.display = 'block';
 
-            // Calculate exact space needed below notch
             const headerHeight = header.offsetHeight;
             frame.style.marginTop = headerHeight + 'px';
             frame.style.height = `calc(100vh - ${headerHeight}px)`;
 
-            // Log entry only if not a refresh
-            if (!isAutoLogin) {
-                try {
-                    fetch(scriptURL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ name: userName, action: "Joined Meeting" })
-                    });
-                } catch (e) { console.log("Logging error", e); }
+            // RESTORED: Attendance Logger
+            if (!isAuto) {
+                fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
             }
 
-            callFrame = window.DailyIframe.createFrame(frame, {
-                showLeaveButton: true,
-                iframeStyle: { width: '100%', height: '100%', border: '0' }
-            });
-            
-            callFrame.join({ 
-                url: 'https://dayosalako.daily.co/unitech-meeting2', 
-                userName: userName 
+            // 8x8 JAAS INITIALIZATION
+            api = new JitsiMeetExternalAPI("8x8.vc", {
+                roomName: ROOM_NAME,
+                width: "100%", height: "100%",
+                parentNode: document.querySelector('#meeting-frame'),
+                userInfo: { displayName: displayName },
+                configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false }
             });
 
-            // Mute Reminder
-            setTimeout(() => {
-                const reminder = document.getElementById('mute-reminder');
-                reminder.style.display = 'block';
-                setTimeout(() => { reminder.style.display = 'none'; }, 7000);
-            }, 5000);
-
-            callFrame.on('left-meeting', () => {
-                fetch(scriptURL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({ name: userName, action: "Left Meeting" })
-                });
-                sessionStorage.removeItem('unitech_user');
-                header.style.display = 'none';
-                frame.style.display = 'none';
+            api.addEventListener('videoConferenceLeft', () => {
+                header.style.display = 'none'; frame.style.display = 'none';
                 document.getElementById('post-meeting-container').style.display = 'block';
+                api.dispose();
             });
         }
 
-        function clearSessionAndReload() {
-            sessionStorage.removeItem('unitech_user');
-            window.location.reload();
+        // RESTORED: Hidden Admin Control
+        function revealAdminButton() {
+            if (prompt("Admin Password:") === "Salako2020") {
+                document.getElementById('admin-download-btn').style.display = "block";
+            }
         }
+
+        function logout() { localStorage.clear(); window.location.reload(); }
     </script>
 </body>
 </html>
-
