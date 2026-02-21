@@ -18,6 +18,7 @@
         :root {
             --navy: #001f3f;
             --accent: #0078d4;
+            --gold: #FFD700;
             --light-gray: #f4f7f9;
             --text-dark: #333;
             --success: #28a745;
@@ -47,7 +48,6 @@
 
         .logo { max-width: 150px; margin-bottom: 20px; }
         h1 { color: var(--navy); font-size: 24px; margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        p { color: #666; margin-bottom: 20px; font-size: 14px; }
 
         /* SECTION: Time Lock Styling - RESTORED */
         #time-status {
@@ -57,7 +57,6 @@
             border: 1px solid #feb2b2;
         }
 
-        /* NEW: Attendance Counter Styling */
         #attendance-counter {
             display: none; font-size: 12px; font-weight: 700; padding: 10px;
             border-radius: 8px; margin-bottom: 15px;
@@ -78,8 +77,9 @@
 
         button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        /* Bypass Highlight */
+        /* Bypass Highlight Logic */
         .admin-mode { background-color: var(--accent) !important; box-shadow: 0 0 15px rgba(0,120,212,0.5); }
+        .super-admin-mode { background: linear-gradient(to right, #b8860b, #ffd700) !important; color: #000 !important; border: 1px solid #b8860b; }
 
         /* SECTION: Header with Notch Fix - RESTORED */
         #session-header {
@@ -90,7 +90,6 @@
         }
 
         #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
-
         #meeting-frame { display: none; width: 100vw; background: black; }
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
         #admin-download-btn { display: none; margin-top: 20px; background-color: var(--success); }
@@ -100,9 +99,7 @@
             display: none; background: #eef6ff; border: 1px solid #0078d4;
             padding: 10px; border-radius: 8px; margin-bottom: 15px;
         }
-        #install-btn {
-            background: var(--accent); font-size: 13px; padding: 8px; margin-top: 5px; width: auto;
-        }
+        #install-btn { background: var(--accent); font-size: 13px; padding: 8px; margin-top: 5px; width: auto; }
         #ios-install-note {
             display: none; background: #fff; border: 2px dashed var(--accent);
             padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: left;
@@ -120,17 +117,15 @@
 
     <div id="setup-container">
         <img src="logo.png" alt="Unitech Logo" class="logo" onerror="this.style.display='none'">
-        <h1>Staff Portal</h1>
+        <h1 id="portal-title">Staff Portal</h1>
         
         <div id="time-status">Syncing with Nigeria Time...</div>
-
         <div id="attendance-counter">👥 Live Attendance: Fetching...</div>
 
         <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #ffeeba;">
-            ⚠️ <strong>Admin Checklist / Bypass Active:</strong><br>
-            • Ensure AI Bot is synced via Calendar.<br>
-            • Simultaneous multi-admin login enabled.<br>
-            • You have 24/7 Access to this Room.
+            ⚠️ <strong>Administrative Access Active:</strong><br>
+            • Time Lock Bypassed (24/7 Access)<br>
+            • Management Control Enabled
         </div>
 
         <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #c6f6d5;">
@@ -179,48 +174,71 @@
         const authURL = "https://script.google.com/macros/s/AKfycbzue0dhfA5yc-aOEeVZcBYYs-l-q5fFfMTHCtlLTjLvJX0lzOQBwyknhPKgCYD_81Oy/exec"; 
         const scriptURL = authURL; 
         const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
-        const BYPASS_LIST = ["dayosalako", "temitopeadeyemi", "faizeljappie", "kabiroyekunle"];
+        
+        // ADMIN LIST
+        const SUPER_ADMIN = "dayosalako";
+        const ADMIN_LIST = ["temitopeadeyemi", "faizeljappie", "kabiroyekunle"];
+        const ALL_BYPASS = [SUPER_ADMIN, ...ADMIN_LIST];
 
         let api = null;
         let isGlobalMeetingTime = false;
 
         function updateClock() {
-            const now = new Date();
-            const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+            const nigeria = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
             const day = nigeria.getDay(); 
             const hrs = nigeria.getHours();
             const mins = nigeria.getMinutes();
+            
             const statusBox = document.getElementById('time-status');
             const loginBtn = document.getElementById('login-btn');
+            const title = document.getElementById('portal-title');
             const counterBox = document.getElementById('attendance-counter');
+            const currentInput = document.getElementById('username').value.trim().toLowerCase();
 
             const isFriday = (day === 5);
             const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
-            // ADMIN PRIVILEGE: CHECK THIS FIRST FOR 24/7 ACCESS
-            if (isBypassUser()) {
-                statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-                statusBox.innerHTML = "💎 Admin Bypass Recognized (24/7 Access)";
-                loginBtn.disabled = false; loginBtn.innerText = "Admin Login";
-                loginBtn.classList.add('admin-mode');
+            // 1. SUPER ADMIN CHECK
+            if (currentInput === SUPER_ADMIN) {
+                statusBox.style.background = "#fff9db"; statusBox.style.color = "#856404";
+                statusBox.innerHTML = "👑 SUPER ADMIN BYPASS ACTIVE";
+                title.innerText = "Command Center";
+                loginBtn.disabled = false; loginBtn.innerText = "Enter Room as Super Admin";
+                loginBtn.className = "super-admin-mode";
                 document.getElementById('admin-note').style.display = "block";
                 counterBox.style.display = "block";
                 fetchAttendance();
-            } else if (isFriday && isTime) {
+            } 
+            // 2. REGULAR ADMIN CHECK
+            else if (ADMIN_LIST.includes(currentInput)) {
+                statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+                statusBox.innerHTML = "💎 Admin Access Recognized (24/7)";
+                title.innerText = "Admin Portal";
+                loginBtn.disabled = false; loginBtn.innerText = "Admin Login";
+                loginBtn.className = "admin-mode";
+                document.getElementById('admin-note').style.display = "block";
+                counterBox.style.display = "block";
+                fetchAttendance();
+            }
+            // 3. STAFF TIME CHECK
+            else if (isFriday && isTime) {
                 isGlobalMeetingTime = true;
                 statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
                 statusBox.innerHTML = "✅ Meeting is OPEN (Starts 9:00 AM)";
+                title.innerText = "Staff Portal";
                 loginBtn.disabled = false; loginBtn.innerText = "Login & Join Meeting";
-                loginBtn.classList.remove('admin-mode');
+                loginBtn.className = "";
                 document.getElementById('admin-note').style.display = "none";
                 counterBox.style.display = "none";
-            } else {
+            } 
+            // 4. LOCKED STATE
+            else {
                 isGlobalMeetingTime = false;
-                loginBtn.disabled = true;
+                loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
+                loginBtn.className = "";
                 statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
                 statusBox.innerHTML = "🔒 Closed. Unlocks Friday at 8:55 AM.";
-                loginBtn.innerText = "Meeting Locked";
-                loginBtn.classList.remove('admin-mode');
+                title.innerText = "Staff Portal";
                 document.getElementById('admin-note').style.display = "none";
                 counterBox.style.display = "none";
             }
@@ -231,18 +249,15 @@
                 const res = await fetch(scriptURL + "?action=getCount");
                 const data = await res.json();
                 document.getElementById('attendance-counter').innerText = `👥 Live Attendance: ${data.count} Staff Online`;
-            } catch (e) { console.log("Counter Error"); }
-        }
-
-        function isBypassUser() {
-            const val = document.getElementById('username').value.trim().toLowerCase();
-            return BYPASS_LIST.includes(val);
+            } catch (e) {}
         }
 
         function checkBypass() { updateClock(); }
-
         setInterval(updateClock, 1000);
-        setInterval(() => { if(isBypassUser()) fetchAttendance(); }, 30000);
+        setInterval(() => { 
+            const val = document.getElementById('username').value.trim().toLowerCase();
+            if(ALL_BYPASS.includes(val)) fetchAttendance(); 
+        }, 30000);
         updateClock();
 
         window.onload = () => {
@@ -250,9 +265,8 @@
             const isLoggedIn = localStorage.getItem('unitech_authenticated');
             const savedUser = (localStorage.getItem('unitech_user_id') || "").toLowerCase();
             
-            // Re-entry logic: Allow if time is valid OR if user is an admin
             if (isLoggedIn === "true" && savedName) {
-                if (isGlobalMeetingTime || BYPASS_LIST.includes(savedUser)) {
+                if (isGlobalMeetingTime || ALL_BYPASS.includes(savedUser)) {
                     startMeeting(true, savedName);
                 }
             }
@@ -272,14 +286,8 @@
                     localStorage.setItem('unitech_display_name', result.displayName);
                     localStorage.setItem('unitech_authenticated', "true");
                     startMeeting(false, result.displayName);
-                } else {
-                    alert("Invalid Credentials.");
-                    updateClock();
-                }
-            } catch (e) {
-                alert("Auth Connection Error.");
-                updateClock();
-            }
+                } else { alert("Invalid Credentials."); updateClock(); }
+            } catch (e) { alert("Auth Connection Error."); updateClock(); }
         }
 
         async function startMeeting(isAuto, displayName) {
@@ -287,14 +295,10 @@
             const header = document.getElementById('session-header');
             const frame = document.getElementById('meeting-frame');
             header.style.display = 'block'; frame.style.display = 'block';
+            frame.style.marginTop = header.offsetHeight + 'px';
+            frame.style.height = `calc(100vh - ${header.offsetHeight}px)`;
 
-            const headerHeight = header.offsetHeight;
-            frame.style.marginTop = headerHeight + 'px';
-            frame.style.height = `calc(100vh - ${headerHeight}px)`;
-
-            if (!isAuto) {
-                fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
-            }
+            if (!isAuto) fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
 
             api = new JitsiMeetExternalAPI("8x8.vc", {
                 roomName: ROOM_NAME, width: "100%", height: "100%",
@@ -302,41 +306,20 @@
                 userInfo: { displayName: displayName },
                 configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false }
             });
-
-            api.addEventListener('videoConferenceLeft', () => {
-                header.style.display = 'none'; frame.style.display = 'none';
-                document.getElementById('post-meeting-container').style.display = 'block';
-                api.dispose();
-            });
+            api.addEventListener('videoConferenceLeft', () => { location.reload(); });
         }
 
         function revealAdminButton() {
-            if (prompt("Admin Password:") === "Salako2020") {
-                document.getElementById('admin-download-btn').style.display = "block";
-            }
+            if (prompt("Admin Password:") === "Salako2020") document.getElementById('admin-download-btn').style.display = "block";
         }
 
         function logout() { localStorage.clear(); window.location.reload(); }
 
-        const installArea = document.getElementById('install-area');
-        const iosNote = document.getElementById('ios-install-note');
-        const installBtn = document.getElementById('install-btn');
-        let deferredPrompt;
-
+        // iOS Install Logic (Restored)
         window.addEventListener('load', () => {
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             const isStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
-            if (isIos && !isStandalone) iosNote.style.display = 'block';
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault(); deferredPrompt = e;
-                if (!isStandalone) installArea.style.display = 'block';
-            });
-            installBtn.addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt = null;
-                }
-            });
+            if (isIos && !isStandalone) document.getElementById('ios-install-note').style.display = 'block';
         });
 
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
