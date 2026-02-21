@@ -1,10 +1,7 @@
 {
-  "name": "Unitech Global Portal",
-  "short_name": "Unitech",
-  "start_url": "index.html",
-  "display": "standalone",
-  "background_color": "#001f3f",
-  "theme_color": "#001f3f",
+  "short_name": "Unitech Portal",
+  "name": "Unitech Global Meeting Portal",
+  "description": "Secure staff portal for Unitech Global Resources Ltd weekly meetings.",
   "icons": [
     {
       "src": "logo.png",
@@ -16,5 +13,12 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#001f3f",
+  "theme_color": "#001f3f",
+  "scope": "./",
+  "lang": "en-US"
 }
