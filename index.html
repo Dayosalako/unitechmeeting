@@ -176,11 +176,9 @@
     <div class="footer-credit">Powered by Zion Netcom Solutions Limited</div>
 
     <script>
-        // UPDATED APPSCRIPT URL
         const authURL = "https://script.google.com/macros/s/AKfycbzue0dhfA5yc-aOEeVZcBYYs-l-q5fFfMTHCtlLTjLvJX0lzOQBwyknhPKgCYD_81Oy/exec"; 
         const scriptURL = authURL; 
         const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
-        
         const BYPASS_LIST = ["dayosalako", "temitopeadeyemi", "faizeljappie", "kabiroyekunle"];
 
         let api = null;
@@ -199,10 +197,11 @@
             const isFriday = (day === 5);
             const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
+            // ADMIN PRIVILEGE: CHECK THIS FIRST FOR 24/7 ACCESS
             if (isBypassUser()) {
                 statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-                statusBox.innerHTML = "💎 Bypass Account Recognized";
-                loginBtn.disabled = false; loginBtn.innerText = "Admin Bypass Access";
+                statusBox.innerHTML = "💎 Admin Bypass Recognized (24/7 Access)";
+                loginBtn.disabled = false; loginBtn.innerText = "Admin Login";
                 loginBtn.classList.add('admin-mode');
                 document.getElementById('admin-note').style.display = "block";
                 counterBox.style.display = "block";
@@ -227,7 +226,6 @@
             }
         }
 
-        // NEW: Function to get live count from Sheet
         async function fetchAttendance() {
             try {
                 const res = await fetch(scriptURL + "?action=getCount");
@@ -250,8 +248,13 @@
         window.onload = () => {
             const savedName = localStorage.getItem('unitech_display_name');
             const isLoggedIn = localStorage.getItem('unitech_authenticated');
-            if (isLoggedIn === "true" && savedName && (isGlobalMeetingTime || isBypassUser())) {
-                startMeeting(true, savedName);
+            const savedUser = (localStorage.getItem('unitech_user_id') || "").toLowerCase();
+            
+            // Re-entry logic: Allow if time is valid OR if user is an admin
+            if (isLoggedIn === "true" && savedName) {
+                if (isGlobalMeetingTime || BYPASS_LIST.includes(savedUser)) {
+                    startMeeting(true, savedName);
+                }
             }
         };
 
@@ -270,11 +273,11 @@
                     localStorage.setItem('unitech_authenticated', "true");
                     startMeeting(false, result.displayName);
                 } else {
-                    alert("Invalid Credentials. Please check with your supervisor.");
+                    alert("Invalid Credentials.");
                     updateClock();
                 }
             } catch (e) {
-                alert("Auth Connection Error. Check your internet.");
+                alert("Auth Connection Error.");
                 updateClock();
             }
         }
@@ -320,20 +323,17 @@
         const installBtn = document.getElementById('install-btn');
         let deferredPrompt;
 
-        const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-        const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-
         window.addEventListener('load', () => {
-            if (isIos() && !isInStandaloneMode()) iosNote.style.display = 'block';
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const isStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
+            if (isIos && !isStandalone) iosNote.style.display = 'block';
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault(); deferredPrompt = e;
-                if (!isInStandaloneMode()) installArea.style.display = 'block';
+                if (!isStandalone) installArea.style.display = 'block';
             });
             installBtn.addEventListener('click', async () => {
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') installArea.style.display = 'none';
                     deferredPrompt = null;
                 }
             });
