@@ -161,8 +161,11 @@
 
     <div id="post-meeting-container" style="display: none;">
         <img src="logo.png" alt="Unitech Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
-        <h2>Meeting Concluded</h2>
+        <h2>Meeting Session</h2>
         <p>Attendance has been logged successfully.</p>
+        
+        <button onclick="location.reload()" style="background-color: var(--success); margin-bottom: 10px;">🔄 Quick Reconnect</button>
+        
         <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')">📂 Open Otter.ai Minutes</button>
         <br><br>
         <button onclick="logout()" style="background: #666; width: auto; padding: 10px 20px;">Logout & Exit</button>
@@ -182,6 +185,14 @@
 
         let api = null;
         let isGlobalMeetingTime = false;
+        let inMeeting = false; // ANTI-REFRESH TRACKER
+
+        // --- NEW ANTI-REFRESH LOGIC ---
+        window.onbeforeunload = function() {
+            if (inMeeting) {
+                return "A meeting is currently in progress. Are you sure you want to leave?";
+            }
+        };
 
         function updateClock() {
             const nigeria = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
@@ -198,7 +209,6 @@
             const isFriday = (day === 5);
             const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
-            // 1. SUPER ADMIN CHECK
             if (currentInput === SUPER_ADMIN) {
                 statusBox.style.background = "#fff9db"; statusBox.style.color = "#856404";
                 statusBox.innerHTML = "👑 SUPER ADMIN BYPASS ACTIVE";
@@ -209,7 +219,6 @@
                 counterBox.style.display = "block";
                 fetchAttendance();
             } 
-            // 2. REGULAR ADMIN CHECK
             else if (ADMIN_LIST.includes(currentInput)) {
                 statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
                 statusBox.innerHTML = "💎 Admin Access Recognized (24/7)";
@@ -220,7 +229,6 @@
                 counterBox.style.display = "block";
                 fetchAttendance();
             }
-            // 3. STAFF TIME CHECK
             else if (isFriday && isTime) {
                 isGlobalMeetingTime = true;
                 statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
@@ -231,7 +239,6 @@
                 document.getElementById('admin-note').style.display = "none";
                 counterBox.style.display = "none";
             } 
-            // 4. LOCKED STATE
             else {
                 isGlobalMeetingTime = false;
                 loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
@@ -291,6 +298,7 @@
         }
 
         async function startMeeting(isAuto, displayName) {
+            inMeeting = true; // LOCK REFRESH
             document.getElementById('setup-container').style.display = 'none';
             const header = document.getElementById('session-header');
             const frame = document.getElementById('meeting-frame');
@@ -306,16 +314,22 @@
                 userInfo: { displayName: displayName },
                 configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false }
             });
-            api.addEventListener('videoConferenceLeft', () => { location.reload(); });
+            
+            api.addEventListener('videoConferenceLeft', () => { 
+                inMeeting = false; // UNLOCK REFRESH
+                document.getElementById('session-header').style.display = 'none';
+                document.getElementById('meeting-frame').style.display = 'none';
+                document.getElementById('post-meeting-container').style.display = 'block';
+                api.dispose();
+            });
         }
 
         function revealAdminButton() {
             if (prompt("Admin Password:") === "Salako2020") document.getElementById('admin-download-btn').style.display = "block";
         }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
+        function logout() { inMeeting = false; localStorage.clear(); window.location.reload(); }
 
-        // iOS Install Logic (Restored)
         window.addEventListener('load', () => {
             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
             const isStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
