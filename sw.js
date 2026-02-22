@@ -11,6 +11,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      // Use cache.addAll with caution: if one asset fails, the whole install fails
       return cache.addAll(assets);
     })
   );
@@ -27,12 +28,27 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Logic: Network first, then Cache
+// Fetch Logic: Strategic Handling
 self.addEventListener('fetch', (event) => {
-    // Skip cross-origin requests (like Jitsi/8x8 API) to prevent errors
-    if (!event.request.url.startsWith(self.location.origin)) return;
+    // IMPORTANT: Ignore Jitsi/8x8 and Google Script URLs
+    // These must ALWAYS be live and should not be handled by the Service Worker cache
+    if (
+        event.request.url.includes('8x8.vc') || 
+        event.request.url.includes('google.com') ||
+        event.request.url.includes('googleapis.com')
+    ) {
+        return; 
+    }
 
     event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
+        fetch(event.request)
+            .then(response => {
+                // If network is successful, return the response
+                return response;
+            })
+            .catch(() => {
+                // If network fails (offline), try the cache
+                return caches.match(event.request);
+            })
     );
 });
