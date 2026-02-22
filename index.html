@@ -162,7 +162,7 @@
 
 <script>
     const authURL = "https://script.google.com/macros/s/AKfycbycZd7SeEtJkIbadU3HZR4-vS5MtqxxSs50lQSbaAWCDeX_G7LJdjH5PmREdLPOa6vF/exec"; 
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbynwojVJuCy0WsDEBQigdkdHCIdsC6KQzWpkSTALAaHDe3gpEsfDU34omI2B4GfOZk1MA/exec';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyMHBYtIVUpBkRZZLS6Le0mq7p0_PIOKIdn19awHUSVaSpgsg8uV9DckVtU2_ZeMaEADQ/exec';
     const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
     
     const SUPER_ADMIN = "dayosalako";
@@ -301,41 +301,51 @@
     }
 
     async function startMeeting(displayName) {
-        inMeeting = true;
-        document.getElementById('setup-container').style.display = 'none';
-        const header = document.getElementById('session-header');
-        const frame = document.getElementById('meeting-frame');
-        header.style.display = 'block'; frame.style.display = 'block';
-        
-        const headerHeight = header.offsetHeight;
-        frame.style.marginTop = headerHeight + 'px';
-        frame.style.height = `calc(100vh - ${headerHeight}px)`;
+    inMeeting = true;
 
-        if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
-
-        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
-
-        api = new JitsiMeetExternalAPI("8x8.vc", {
-            roomName: ROOM_NAME,
-            width: "100%", height: "100%",
-            parentNode: document.querySelector('#meeting-frame'),
-            userInfo: { displayName: displayName },
-            configOverwrite: { 
-                startWithAudioMuted: true, 
-                prejoinPageEnabled: false, 
-                disableBeforeUnload: true 
-            }
-        });
-
-        api.addEventListener('videoConferenceLeft', () => {
-            inMeeting = false;
-            if (wakeLock) wakeLock.release();
-            header.style.display = 'none'; frame.style.display = 'none';
-            document.getElementById('post-meeting-container').style.display = 'block';
-            api.dispose();
-        });
+    // --- PRO-TIP: DUAL DEVICE ECHO PROTECTION ---
+    const hasJoinedBefore = localStorage.getItem('unitech_already_joined');
+    if (hasJoinedBefore === "true") {
+        alert("📢 PRO-TIP: You are joining from a second device. Please MUTE your microphone and TURN OFF the speaker on this device to avoid audio echo/feedback.");
+    } else {
+        localStorage.setItem('unitech_already_joined', "true");
     }
 
+    document.getElementById('setup-container').style.display = 'none';
+    const header = document.getElementById('session-header');
+    const frame = document.getElementById('meeting-frame');
+    header.style.display = 'block'; frame.style.display = 'block';
+    
+    const headerHeight = header.offsetHeight;
+    frame.style.marginTop = headerHeight + 'px';
+    frame.style.height = `calc(100vh - ${headerHeight}px)`;
+
+    if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+
+    fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
+
+    api = new JitsiMeetExternalAPI("8x8.vc", {
+        roomName: ROOM_NAME,
+        width: "100%", height: "100%",
+        parentNode: document.querySelector('#meeting-frame'),
+        userInfo: { displayName: displayName },
+        configOverwrite: { 
+            startWithAudioMuted: true, 
+            prejoinPageEnabled: false, 
+            disableBeforeUnload: true 
+        }
+    });
+
+    api.addEventListener('videoConferenceLeft', () => {
+        inMeeting = false;
+        if (wakeLock) wakeLock.release();
+        // Clear the joined flag so they can reconnect later if needed
+        localStorage.removeItem('unitech_already_joined'); 
+        header.style.display = 'none'; frame.style.display = 'none';
+        document.getElementById('post-meeting-container').style.display = 'block';
+        api.dispose();
+    });
+}
     async function resetUserDevice() {
         const target = prompt("Enter Username to Reset Device ID:");
         if (!target) return;
@@ -386,4 +396,5 @@
 </script>
 </body>
 </html>
+
 
