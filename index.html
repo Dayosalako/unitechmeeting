@@ -133,7 +133,8 @@
     <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #ffeeba;">
         ⚠️ <strong>Super Admin Checklist:</strong><br>
         • Ensure <strong>Otter.ai</strong> is synced.<br>
-        • <span onclick="resetUserDevice()" style="text-decoration: underline; cursor: pointer; color: #0078d4;">Reset Staff Device ID</span>
+        • <span onclick="resetUserDevice()" style="text-decoration: underline; cursor: pointer; color: #0078d4;">Reset Staff Device ID</span><br>
+        • <span onclick="clearAttendanceData()" style="text-decoration: underline; cursor: pointer; color: #d9534f;">Clear Attendance List</span>
     </div>
 
     <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #c6f6d5;">
@@ -160,7 +161,7 @@
 <div class="footer-credit">Powered by Zion Netcom Solutions Limited</div>
 
 <script>
-    const authURL = "https://script.google.com/macros/s/AKfycbxXdfdMaCBvlkbx9j3C71f3Lc_4RBNZ7F0QumpzrAciP4pA8SW_Sp5zzg0OzU24r3Bw/exec"; 
+    const authURL = "https://script.google.com/macros/s/AKfycbynwojVJuCy0WsDEBQigdkdHCIdsC6KQzWpkSTALAaHDe3gpEsfDU34omI2B4GfOZk1MA/exec"; 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
     const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
     
@@ -172,7 +173,6 @@
     let inMeeting = false;
     let wakeLock = null;
 
-    // 1. GENERATE / RETRIEVE DEVICE ID
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
         if (!id) {
@@ -182,7 +182,6 @@
         return id;
     }
 
-    // 2. REFRESH GUARD
     window.addEventListener('beforeunload', (event) => {
         if (inMeeting) {
             event.preventDefault();
@@ -190,7 +189,6 @@
         }
     });
 
-    // 3. AUTO-FILL & SERVICE WORKER
     window.onload = () => {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js?v=3').then(reg => reg.update());
@@ -313,10 +311,8 @@
         frame.style.marginTop = headerHeight + 'px';
         frame.style.height = `calc(100vh - ${headerHeight}px)`;
 
-        // Request WakeLock to keep CPU active in background
         if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
 
-        // Attendance Log
         fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
 
         api = new JitsiMeetExternalAPI("8x8.vc", {
@@ -348,6 +344,18 @@
             const data = await res.json();
             alert(data.message);
         } catch (e) { alert("Failed to connect."); }
+    }
+
+    async function clearAttendanceData() {
+        if (!confirm("Are you sure you want to wipe the attendance list for today?")) return;
+        try {
+            const res = await fetch(scriptURL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: "clear_attendance" }) 
+            });
+            alert("Attendance list has been cleared successfully.");
+            fetchAttendance();
+        } catch (e) { alert("Error clearing attendance."); }
     }
 
     function revealAdminButton() {
