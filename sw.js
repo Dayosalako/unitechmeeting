@@ -1,4 +1,4 @@
-const CACHE_NAME = 'unglobal-v1';
+const CACHE_NAME = 'unglobal-v2';
 const assets = [
   './',
   './index.html',
