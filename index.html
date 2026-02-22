@@ -11,8 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="logo.png">
-   <link rel="manifest" href="manifest.json?v=2">                    
-  
+    <link rel="manifest" href="manifest.json?v=3">
 
     <style>
         :root {
@@ -90,7 +89,6 @@
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
         #admin-download-btn { display: none; margin-top: 20px; background-color: var(--success); }
 
-        /* App Install UI */
         #install-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 31, 63, 0.98); z-index: 10000;
@@ -109,14 +107,14 @@
 <div id="install-overlay">
     <img src="logo.png" style="max-width: 120px; margin-bottom: 20px;">
     <h2>UNGLOBAL Weekly Meeting</h2>
-    <p>This portal must be installed as an App to proceed.</p>
+    <p>Install the App to enable background audio & microphone.</p>
     <button id="install-btn-main">Install App Now</button>
     <div id="ios-instructions">
         <h4 style="margin:0">iPhone/iPad Users:</h4>
         <ol style="text-align:left; font-size: 14px;">
             <li>Tap the <strong>Share</strong> icon (bottom center).</li>
             <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-            <li>Open the app from your home screen.</li>
+            <li>Open UNGLOBAL from your home screen.</li>
         </ol>
     </div>
 </div>
@@ -134,12 +132,12 @@
 
     <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #ffeeba;">
         ⚠️ <strong>Super Admin Checklist:</strong><br>
-        • Ensure <strong>Otter.ai</strong> is synced to Google Calendar.<br>
-        • The bot joins automatically at 9:00 AM.
+        • Ensure <strong>Otter.ai</strong> is synced.<br>
+        • <span onclick="resetUserDevice()" style="text-decoration: underline; cursor: pointer; color: #0078d4;">Reset Staff Device ID</span>
     </div>
 
     <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #c6f6d5;">
-        🤖 <strong>Management Message:</strong> Welcome to today's meeting. Keep doing what you know how to do best. Keep on improving your skill.  
+        🤖 <strong>Management:</strong> Welcome. Keep improving your skills.
     </div>
 
     <input type="text" id="username" placeholder="Username" oninput="updateClock()">
@@ -150,19 +148,19 @@
 <div id="meeting-frame"></div>
 
 <div id="post-meeting-container" style="display: none;">
-    <img src="logo.png" alt="Unitech Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
+    <img src="logo.png" alt="Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
     <h2>Meeting Concluded</h2>
-    <p>Attendance has been logged successfully.</p>
+    <p>Attendance logged. Credentials saved.</p>
     <button onclick="location.reload()" style="background: var(--success); margin-bottom: 10px;">🔄 Quick Reconnect</button>
-    <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')">📂 Open Otter.ai Minutes</button>
+    <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')">📂 Open Otter.ai</button>
     <br><br>
-    <button onclick="logout()" style="background: #666; width: auto; padding: 10px 20px;">Logout & Exit</button>
+    <button onclick="logout()" style="background: #666; width: auto; padding: 10px 20px;">Logout & Clear Storage</button>
 </div>
 
 <div class="footer-credit">Powered by Zion Netcom Solutions Limited</div>
 
 <script>
-    const authURL = "https://script.google.com/macros/s/AKfycbycFspIkYThsmblFNy4DNl0lJKrZO3gU6jx_fkyUQlpeAuNzlI8ykFgc-v0mKAwF9lC/exec"; 
+    const authURL = "https://script.google.com/macros/s/AKfycbxXdfdMaCBvlkbx9j3C71f3Lc_4RBNZ7F0QumpzrAciP4pA8SW_Sp5zzg0OzU24r3Bw/exec"; 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbyjzjsY0hgQWwsohlDnvAEsbnhapTPZUaAGg6rPWJ0MV3GpMC8OKhlNBTpAH0PS4KDrSg/exec';
     const ROOM_NAME = "vpaas-magic-cookie-395f8038d65045c8b17c1bb294011a0c/Unitech-Global-Weekly-Meeting";
     
@@ -171,16 +169,49 @@
     const ALL_BYPASS = [SUPER_ADMIN, ...ADMIN_LIST];
 
     let api = null;
-    let isMeetingTime = false;
     let inMeeting = false;
+    let wakeLock = null;
 
-    // SINGLE REFRESH GUARD
+    // 1. GENERATE / RETRIEVE DEVICE ID
+    function getDeviceId() {
+        let id = localStorage.getItem('unitech_device_id');
+        if (!id) {
+            id = 'dev-' + Math.random().toString(36).substr(2, 9) + Date.now();
+            localStorage.setItem('unitech_device_id', id);
+        }
+        return id;
+    }
+
+    // 2. REFRESH GUARD
     window.addEventListener('beforeunload', (event) => {
         if (inMeeting) {
             event.preventDefault();
-            event.returnValue = "Warning: Refreshing will disconnect you from the UNGLOBAL meeting!";
+            event.returnValue = "Warning: You will be disconnected!";
         }
     });
+
+    // 3. AUTO-FILL & SERVICE WORKER
+    window.onload = () => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js?v=3').then(reg => reg.update());
+        }
+
+        const savedUser = localStorage.getItem('unitech_user_id');
+        const savedPass = localStorage.getItem('unitech_pass');
+        if (savedUser) document.getElementById('username').value = savedUser;
+        if (savedPass) document.getElementById('staff-password').value = savedPass;
+
+        const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (!isApp) {
+            document.getElementById('install-overlay').style.display = 'flex';
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            if (isIos) {
+                document.getElementById('ios-instructions').style.display = 'block';
+                document.getElementById('install-btn-main').style.display = 'none';
+            }
+        }
+        updateClock();
+    };
 
     async function fetchAttendance() {
         try {
@@ -207,27 +238,24 @@
         const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
         if (userIn === SUPER_ADMIN) {
-            isMeetingTime = true;
             statusBox.style.background = "#fff9db"; statusBox.style.color = "#856404";
             statusBox.innerHTML = "👑 SUPER ADMIN MODE";
             loginBtn.disabled = false; loginBtn.innerText = "Enter Command Center";
             loginBtn.className = "super-admin-mode";
-            adminNote.style.display = "block"; // Only for Super Admin
+            adminNote.style.display = "block";
             counterBox.style.display = "block";
             fetchAttendance();
         } 
         else if (ADMIN_LIST.includes(userIn)) {
-            isMeetingTime = true;
             statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
             statusBox.innerHTML = "💎 ADMIN BYPASS";
             loginBtn.disabled = false; loginBtn.innerText = "Admin Entry";
             loginBtn.className = "admin-mode";
-            adminNote.style.display = "none"; // Hide Otter for regular admin
+            adminNote.style.display = "none";
             counterBox.style.display = "block";
             fetchAttendance();
         }
         else if (isFriday && isTime) {
-            isMeetingTime = true;
             statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
             statusBox.innerHTML = "✅ Meeting is OPEN";
             loginBtn.disabled = false; loginBtn.innerText = "Login & Join";
@@ -235,51 +263,37 @@
             adminNote.style.display = "none";
             counterBox.style.display = "none";
         } else {
-            isMeetingTime = false; loginBtn.disabled = true;
             statusBox.style.background = "#fff5f5"; statusBox.style.color = "var(--warning)";
-            statusBox.innerHTML = "🔒 Meeting Locked until Friday 8:55 AM";
+            statusBox.innerHTML = "🔒 Locked until Friday 8:55 AM";
             loginBtn.innerText = "Meeting Locked";
-            loginBtn.className = "";
+            loginBtn.disabled = true; loginBtn.className = "";
             adminNote.style.display = "none";
             counterBox.style.display = "none";
         }
     }
 
-    setInterval(updateClock, 1000);
-    setInterval(() => {
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
-        if (ALL_BYPASS.includes(userIn)) fetchAttendance();
-    }, 30000);
-
-    window.onload = () => {
-        const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (!isApp) {
-            document.getElementById('install-overlay').style.display = 'flex';
-            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-            if (isIos) {
-                document.getElementById('ios-instructions').style.display = 'block';
-                document.getElementById('install-btn-main').style.display = 'none';
-            }
-        }
-        updateClock();
-    };
-
     async function handleLogin() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
+        const deviceId = getDeviceId();
         const btn = document.getElementById('login-btn');
-        btn.innerText = "Authenticating..."; btn.disabled = true;
+        
+        btn.innerText = "Authenticating Device..."; btn.disabled = true;
 
         try {
-            const response = await fetch(authURL, { method: 'POST', body: JSON.stringify({ username: userIn, password: passIn }) });
+            const response = await fetch(authURL, { 
+                method: 'POST', 
+                body: JSON.stringify({ action: "login_check", username: userIn, password: passIn, deviceId: deviceId }) 
+            });
             const result = await response.json();
+            
             if (result.status === "success") {
                 localStorage.setItem('unitech_user_id', userIn);
+                localStorage.setItem('unitech_pass', passIn);
                 localStorage.setItem('unitech_display_name', result.displayName);
-                localStorage.setItem('unitech_authenticated', "true");
-                startMeeting(false, result.displayName);
+                startMeeting(result.displayName);
             } else {
-                alert("Invalid Credentials.");
+                alert(result.message);
                 updateClock(); 
             }
         } catch (e) {
@@ -288,34 +302,52 @@
         }
     }
 
-    async function startMeeting(isAuto, displayName) {
+    async function startMeeting(displayName) {
         inMeeting = true;
         document.getElementById('setup-container').style.display = 'none';
         const header = document.getElementById('session-header');
         const frame = document.getElementById('meeting-frame');
         header.style.display = 'block'; frame.style.display = 'block';
+        
         const headerHeight = header.offsetHeight;
         frame.style.marginTop = headerHeight + 'px';
         frame.style.height = `calc(100vh - ${headerHeight}px)`;
 
-        if (!isAuto) {
-            fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
-        }
+        // Request WakeLock to keep CPU active in background
+        if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+
+        // Attendance Log
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
 
         api = new JitsiMeetExternalAPI("8x8.vc", {
             roomName: ROOM_NAME,
             width: "100%", height: "100%",
             parentNode: document.querySelector('#meeting-frame'),
             userInfo: { displayName: displayName },
-            configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false }
+            configOverwrite: { 
+                startWithAudioMuted: true, 
+                prejoinPageEnabled: false, 
+                disableBeforeUnload: true 
+            }
         });
 
         api.addEventListener('videoConferenceLeft', () => {
             inMeeting = false;
+            if (wakeLock) wakeLock.release();
             header.style.display = 'none'; frame.style.display = 'none';
             document.getElementById('post-meeting-container').style.display = 'block';
             api.dispose();
         });
+    }
+
+    async function resetUserDevice() {
+        const target = prompt("Enter Username to Reset Device ID:");
+        if (!target) return;
+        try {
+            const res = await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_device", username: target }) });
+            const data = await res.json();
+            alert(data.message);
+        } catch (e) { alert("Failed to connect."); }
     }
 
     function revealAdminButton() {
@@ -327,30 +359,22 @@
     function logout() { inMeeting = false; localStorage.clear(); window.location.reload(); }
 
     let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-    });
-
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
     document.getElementById('install-btn-main').addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             if (outcome === 'accepted') document.getElementById('install-overlay').style.display = 'none';
         } else {
-            alert("Open browser settings and select 'Add to Home Screen'.");
+            alert("Open browser menu and select 'Add to Home Screen'.");
         }
     });
-    if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-            // Check for updates to the manifest/worker
-            reg.update();
-            console.log("UNGLOBAL Service Worker Active");
-        });
-    });
-}
+
+    setInterval(updateClock, 1000);
+    setInterval(() => {
+        const userIn = document.getElementById('username').value.trim().toLowerCase();
+        if (ALL_BYPASS.includes(userIn)) fetchAttendance();
+    }, 30000);
 </script>
 </body>
 </html>
-
