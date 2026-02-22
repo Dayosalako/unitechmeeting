@@ -1,23 +1,23 @@
-const CACHE_NAME = 'unitech-portal-v1';
+const CACHE_NAME = 'unglobal-v1';
 const assets = [
   './',
   './index.html',
-  './logo.png',
-  './manifest.json'
+  './manifest.json',
+  './logo.png'
 ];
 
-self.addEventListener('install', evt => {
-  evt.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      cache.addAll(assets);
+// Install Service Worker
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(assets);
     })
   );
 });
 
-self.addEventListener('fetch', evt => {
-  evt.respondWith(
-    caches.match(evt.request).then(rec => {
-      return rec || fetch(evt.request);
-    })
+// Fetching assets
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
