@@ -1,4 +1,4 @@
-const CACHE_NAME = 'unglobal-v4'; // Incremented version to v4
+const CACHE_NAME = 'unglobal-v4';
 const assets = [
   './',
   './index.html',
@@ -6,17 +6,19 @@ const assets = [
   './logo.png'
 ];
 
-// 1. Install and Cache Assets
+// Install and Cache Assets
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Force the new service worker to become active immediately
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      // If any asset in the array is missing, the install will fail. 
+      // Ensure logo.png and manifest.json exist in your root folder.
       return cache.addAll(assets);
     })
   );
 });
 
-// 2. Activate and Clean Old Caches
+// Activate and Clean Old Caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -25,33 +27,30 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Ensure the new Service Worker takes control of the page immediately
-  return self.clients.claim(); 
 });
 
-// 3. Strategic Fetch Handling
+// Fetch Logic: Strategic Handling
 self.addEventListener('fetch', (event) => {
-    const url = event.request.url;
-
-    // CRITICAL: Never cache these. They must always be LIVE.
+    // IMPORTANT: Ignore Jitsi/8x8 and Google Script URLs
+    // These must ALWAYS be live and should not be handled by the Service Worker cache.
+    // Caching these would break the meeting connection and the login verification.
     if (
-        url.includes('8x8.vc') || 
-        url.includes('google.com') ||
-        url.includes('googleapis.com') ||
-        url.includes('exec') // Matches your Google Script macros
+        event.request.url.includes('8x8.vc') || 
+        event.request.url.includes('google.com') ||
+        event.request.url.includes('googleapis.com') ||
+        event.request.url.includes('googleusercontent.com')
     ) {
         return; 
     }
 
-    // Network-First Strategy for index.html
-    // This ensures that the Friday 8:55 AM lock is always accurate
     event.respondWith(
         fetch(event.request)
             .then(response => {
+                // If network is successful, return the response immediately
                 return response;
             })
             .catch(() => {
-                // If offline, provide the cached version
+                // If network fails (offline), attempt to serve from the cache
                 return caches.match(event.request);
             })
     );
