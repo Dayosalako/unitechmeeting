@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+<!DOCTYPE html>                    
+  
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -172,8 +173,9 @@
     let api = null;
     let inMeeting = false;
     let wakeLock = null;
+    let deferredPrompt;
 
-    // --- 1. DEVICE IDENTITY & GHOST PREVENTION ---
+    // --- 1. DEVICE IDENTITY ---
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
         if (!id) {
@@ -183,32 +185,49 @@
         return id;
     }
 
-    // Ensure session is cleaned up if page is closed
-    window.onbeforeunload = () => {
-        if (api) api.dispose();
-    };
-
+    // --- 2. STARTUP LOGIC ---
     window.onload = () => {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js?v=3');
         }
 
-        // AUTO-RESUME: Re-join if they accidentally closed the app
-        const sessionActive = localStorage.getItem('unitech_session_active');
-        const savedName = localStorage.getItem('unitech_display_name');
-        if (sessionActive === "true" && savedName) {
-            startMeeting(savedName);
-        }
-
-        // INSTALL CHECK
         const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (isApp) document.getElementById('install-overlay').style.display = 'none';
+
+        if (isApp) {
+            // IN-APP: Hide install screen and Auto-Resume
+            document.getElementById('install-overlay').style.display = 'none';
+            const sessionActive = localStorage.getItem('unitech_session_active');
+            const savedName = localStorage.getItem('unitech_display_name');
+            if (sessionActive === "true" && savedName) {
+                startMeeting(savedName);
+            }
+        } else {
+            // IN-BROWSER: Check if they previously installed it
+            if (localStorage.getItem('app_already_installed') === 'true') {
+                document.body.innerHTML = `
+                    <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px; font-family:sans-serif;">
+                        <img src="logo.png" width="100" style="margin-bottom:20px;">
+                        <h2>Portal is Ready</h2>
+                        <p>You have already installed the app.<br>Please close this browser and open the <b>UNGLOBAL</b> app from your home screen.</p>
+                        <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">I'm still seeing this? Refresh</button>
+                    </div>
+                `;
+                return; // Stop execution
+            } else {
+                document.getElementById('install-overlay').style.display = 'flex';
+                // Check if iOS
+                if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
+                    document.getElementById('ios-instructions').style.display = 'block';
+                    document.getElementById('install-btn-main').style.display = 'none';
+                }
+            }
+        }
 
         updateClock();
         setInterval(updateClock, 1000);
     };
 
-    // --- 2. THE GATEKEEPER (Clock Logic) ---
+    // --- 3. THE GATEKEEPER (Clock & Admin Logic) ---
     function updateClock() {
         if (inMeeting) return;
 
@@ -223,33 +242,27 @@
         const userIn = document.getElementById('username').value.trim().toLowerCase();
 
         const isFriday = (day === 5);
-        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55)); // 8:55 AM
+        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
-        // ADMIN BYPASS
         if (ALL_BYPASS.includes(userIn)) {
             statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
             statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE (24/7)";
-            loginBtn.disabled = false;
-            loginBtn.innerText = "Enter Meeting Now";
+            loginBtn.disabled = false; loginBtn.innerText = "Enter Meeting Now";
+            document.getElementById('attendance-counter').style.display = "block";
+            document.getElementById('admin-note').style.display = "block";
             fetchAttendance();
-        } 
-        // STAFF TIME CHECK
-        else if (isFriday && isTime) {
+        } else if (isFriday && isTime) {
             statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
             statusBox.innerHTML = "✅ MEETING IS OPEN";
-            loginBtn.disabled = false;
-            loginBtn.innerText = "Join Meeting";
-        } 
-        // LOCKED STATE
-        else {
+            loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
+        } else {
             statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
             statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
-            loginBtn.disabled = true;
-            loginBtn.innerText = "Meeting Locked";
+            loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
         }
     }
 
-    // --- 3. LOGIN & ATTENDANCE ---
+    // --- 4. AUTHENTICATION ---
     async function handleLogin() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
@@ -276,14 +289,14 @@
                 updateClock();
             }
         } catch (e) {
-            alert("Network Error. Check internet.");
+            alert("Network Error.");
             btn.disabled = false;
         }
     }
 
-    // --- 4. THE MEETING (ANTI-GHOSTING & SECURITY) ---
+    // --- 5. MEETING ENGINE ---
     async function startMeeting(displayName) {
-        if (api) api.dispose(); // CRITICAL: Kills any existing ghost session
+        if (api) api.dispose(); 
         inMeeting = true;
 
         document.getElementById('setup-container').style.display = 'none';
@@ -292,7 +305,6 @@
 
         if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
 
-        // Attendance
         fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
 
         api = new JitsiMeetExternalAPI("8x8.vc", {
@@ -303,15 +315,14 @@
             configOverwrite: { 
                 startWithAudioMuted: true,
                 prejoinPageEnabled: false,
-                lobby: { enabled: true } // Enables Lobby feature
+                lobby: { enabled: true } 
             }
         });
 
-        // Moderator Controls (Auto-Lock Room)
         api.addEventListener('videoConferenceJoined', () => {
             const userIn = localStorage.getItem('unitech_user_id');
             if (ALL_BYPASS.includes(userIn)) {
-                api.executeCommand('toggleLobby', true); // Admin joins and locks the door
+                api.executeCommand('toggleLobby', true);
             }
         });
 
@@ -323,6 +334,28 @@
             window.location.reload();
         });
     }
+
+    // --- 6. INSTALL & ADMIN TOOLS ---
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+    });
+
+    document.getElementById('install-btn-main').addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                localStorage.setItem('app_already_installed', 'true');
+                document.getElementById('install-overlay').style.display = 'none';
+            }
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        localStorage.setItem('app_already_installed', 'true');
+        alert("✅ Installed! Close this browser and open the 'UNGLOBAL' App.");
+    });
 
     async function fetchAttendance() {
         try {
@@ -337,9 +370,11 @@
         localStorage.clear(); 
         window.location.reload(); 
     }
-</script> 
+</script>                     
+  
 </body>
 </html>
+
 
 
 
