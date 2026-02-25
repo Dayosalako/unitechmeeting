@@ -85,10 +85,9 @@
 
         #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
 
-        /* Full Screen Fix: Meeting frame now covers everything */
+        /* Standard Frame Layout (Not Overlaid) */
         #meeting-frame { 
-            display: none; position: fixed; top: 0; left: 0; 
-            width: 100vw; height: 100vh; background: black; z-index: 500; 
+            display: none; width: 100vw; background: black; 
         }
 
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
@@ -102,7 +101,6 @@
         #install-overlay h2 { margin-bottom: 10px; font-size: 20px; }
         #install-btn-main { background: var(--success); width: auto; padding: 15px 40px; margin-top: 20px; }
         
-        /* The Cancel Button */
         .close-x {
             position: absolute; top: 20px; right: 30px; font-size: 35px;
             cursor: pointer; color: white; font-weight: bold; opacity: 0.8;
@@ -121,7 +119,7 @@
     <img src="logo.png" style="max-width: 120px; margin-bottom: 20px;">
     <h2>UNGLOBAL Weekly Meeting</h2>
     <p>Install the App to enable background audio & microphone.</p>
-    <p>Installed the App before? You can cancel this step and open the app on your Homescreen</p>                                        
+    <p>Installed before? You can close this and open from your Homescreen.</p>                                        
     <button id="install-btn-main">Install App Now</button>
     <div id="ios-instructions">
         <h4 style="margin:0">iPhone/iPad Users:</h4>
@@ -188,7 +186,6 @@
     let wakeLock = null;
     let deferredPrompt;
 
-    // --- 1. DEVICE IDENTITY ---
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
         if (!id) {
@@ -198,7 +195,6 @@
         return id;
     }
 
-    // --- 2. STARTUP LOGIC ---
     window.onload = () => {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js?v=4');
@@ -220,7 +216,7 @@
                         <img src="logo.png" width="100" style="margin-bottom:20px;">
                         <h2>Portal is Ready</h2>
                         <p>You have already installed the app.<br>Please close this browser and open the <b>UNGLOBAL</b> app from your home screen.</p>
-                        <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">I'm still seeing this? Refresh</button>
+                        <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">Refresh</button>
                     </div>
                 `;
                 return;
@@ -237,10 +233,8 @@
         setInterval(updateClock, 1000);
     };
 
-    // --- 3. THE GATEKEEPER ---
     function updateClock() {
         if (inMeeting) return;
-
         const now = new Date();
         const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const day = nigeria.getDay(); 
@@ -258,8 +252,7 @@
         if (userIn === SUPER_ADMIN) {
             statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
             statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
-            loginBtn.disabled = false;
-            loginBtn.innerText = "Enter as Super Admin";
+            loginBtn.disabled = false; loginBtn.innerText = "Enter as Super Admin";
             loginBtn.className = "super-admin-mode";
             adminNote.style.display = "block";
             document.getElementById('attendance-counter').style.display = "block";
@@ -268,8 +261,7 @@
         else if (ADMIN_LIST.includes(userIn)) {
             statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
             statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
-            loginBtn.disabled = false;
-            loginBtn.innerText = "Enter Admin Meeting";
+            loginBtn.disabled = false; loginBtn.innerText = "Enter Admin Meeting";
             loginBtn.className = "admin-mode";
             adminNote.style.display = "none"; 
             document.getElementById('attendance-counter').style.display = "block";
@@ -281,18 +273,15 @@
             if (isFriday && isTime) {
                 statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
                 statusBox.innerHTML = "✅ MEETING IS OPEN";
-                loginBtn.disabled = false;
-                loginBtn.innerText = "Join Meeting";
+                loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
             } else {
                 statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
                 statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
-                loginBtn.disabled = true;
-                loginBtn.innerText = "Meeting Locked";
+                loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
             }
         }
     }
 
-    // --- 4. AUTHENTICATION ---
     async function handleLogin() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
@@ -300,14 +289,12 @@
         const btn = document.getElementById('login-btn');
         
         btn.innerText = "Verifying..."; btn.disabled = true;
-
         try {
             const response = await fetch(authURL, { 
                 method: 'POST', 
                 body: JSON.stringify({ action: "login_check", username: userIn, password: passIn, deviceId: deviceId }) 
             });
             const result = await response.json();
-            
             if (result.status === "success") {
                 localStorage.setItem('unitech_user_id', userIn);
                 localStorage.setItem('unitech_display_name', result.displayName);
@@ -324,14 +311,19 @@
         }
     }
 
-    // --- 5. MEETING ENGINE ---
     async function startMeeting(displayName) {
         if (api) api.dispose(); 
         inMeeting = true;
 
         document.getElementById('setup-container').style.display = 'none';
-        document.getElementById('session-header').style.display = 'block';
-        document.getElementById('meeting-frame').style.display = 'block';
+        const header = document.getElementById('session-header');
+        const frame = document.getElementById('meeting-frame');
+        header.style.display = 'block'; frame.style.display = 'block';
+
+        // Adjust frame height based on header height
+        const headerHeight = header.offsetHeight;
+        frame.style.marginTop = headerHeight + 'px';
+        frame.style.height = `calc(100vh - ${headerHeight}px)`;
 
         if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
 
@@ -365,11 +357,7 @@
         });
     }
 
-    // --- 6. TOOLS & INSTALL ---
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-    });
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
     document.getElementById('install-btn-main').addEventListener('click', async () => {
         if (deferredPrompt) {
@@ -424,4 +412,3 @@
 </script>
 </body>
 </html>
-
