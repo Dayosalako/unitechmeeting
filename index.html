@@ -229,39 +229,61 @@
 
     // --- 3. THE GATEKEEPER (Clock & Admin Logic) ---
     function updateClock() {
-        if (inMeeting) return;
+    if (inMeeting) return;
 
-        const now = new Date();
-        const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-        const day = nigeria.getDay(); 
-        const hrs = nigeria.getHours();
-        const mins = nigeria.getMinutes();
-        
-        const statusBox = document.getElementById('time-status');
-        const loginBtn = document.getElementById('login-btn');
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
+    const now = new Date();
+    const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+    const day = nigeria.getDay(); 
+    const hrs = nigeria.getHours();
+    const mins = nigeria.getMinutes();
+    
+    const statusBox = document.getElementById('time-status');
+    const loginBtn = document.getElementById('login-btn');
+    const adminNote = document.getElementById('admin-note');
+    const userIn = document.getElementById('username').value.trim().toLowerCase();
 
-        const isFriday = (day === 5);
-        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
+    const isFriday = (day === 5);
+    const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
-        if (ALL_BYPASS.includes(userIn)) {
-            statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-            statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE (24/7)";
-            loginBtn.disabled = false; loginBtn.innerText = "Enter Meeting Now";
-            document.getElementById('attendance-counter').style.display = "block";
-            document.getElementById('admin-note').style.display = "block";
-            fetchAttendance();
-        } else if (isFriday && isTime) {
+    // --- SUPER ADMIN LOGIC (Dayosalako) ---
+    if (userIn === SUPER_ADMIN) {
+        statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
+        statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Enter as Super Admin";
+        loginBtn.className = "super-admin-mode"; // Turns button Gold
+        adminNote.style.display = "block"; // Shows Checklist & Reset tools
+        document.getElementById('attendance-counter').style.display = "block";
+        fetchAttendance();
+    } 
+    // --- ADMIN LOGIC (The others) ---
+    else if (ADMIN_LIST.includes(userIn)) {
+        statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+        statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Enter Admin Meeting";
+        loginBtn.className = "admin-mode"; // Turns button Blue
+        adminNote.style.display = "none"; 
+        document.getElementById('attendance-counter').style.display = "block";
+        fetchAttendance();
+    } 
+    // --- STAFF LOGIC ---
+    else {
+        loginBtn.className = ""; // Reset to default Navy
+        adminNote.style.display = "none";
+        if (isFriday && isTime) {
             statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
             statusBox.innerHTML = "✅ MEETING IS OPEN";
-            loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Join Meeting";
         } else {
             statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
             statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
-            loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
+            loginBtn.disabled = true;
+            loginBtn.innerText = "Meeting Locked";
         }
     }
-
+}
     // --- 4. AUTHENTICATION ---
     async function handleLogin() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
@@ -374,6 +396,7 @@
   
 </body>
 </html>
+
 
 
 
