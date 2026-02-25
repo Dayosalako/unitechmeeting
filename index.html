@@ -173,6 +173,7 @@
     let inMeeting = false;
     let wakeLock = null;
 
+    // --- 1. DEVICE IDENTITY & GHOST PREVENTION ---
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
         if (!id) {
@@ -182,44 +183,35 @@
         return id;
     }
 
-    window.addEventListener('beforeunload', (event) => {
-        if (inMeeting) {
-            event.preventDefault();
-            event.returnValue = "Warning: You will be disconnected!";
-        }
-    });
+    // Ensure session is cleaned up if page is closed
+    window.onbeforeunload = () => {
+        if (api) api.dispose();
+    };
 
     window.onload = () => {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=3').then(reg => reg.update());
+            navigator.serviceWorker.register('./sw.js?v=3');
         }
 
-        const savedUser = localStorage.getItem('unitech_user_id');
-        const savedPass = localStorage.getItem('unitech_pass');
-        if (savedUser) document.getElementById('username').value = savedUser;
-        if (savedPass) document.getElementById('staff-password').value = savedPass;
+        // AUTO-RESUME: Re-join if they accidentally closed the app
+        const sessionActive = localStorage.getItem('unitech_session_active');
+        const savedName = localStorage.getItem('unitech_display_name');
+        if (sessionActive === "true" && savedName) {
+            startMeeting(savedName);
+        }
 
+        // INSTALL CHECK
         const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (!isApp) {
-            document.getElementById('install-overlay').style.display = 'flex';
-            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-            if (isIos) {
-                document.getElementById('ios-instructions').style.display = 'block';
-                document.getElementById('install-btn-main').style.display = 'none';
-            }
-        }
+        if (isApp) document.getElementById('install-overlay').style.display = 'none';
+
         updateClock();
+        setInterval(updateClock, 1000);
     };
 
-    async function fetchAttendance() {
-        try {
-            const res = await fetch(scriptURL + "?action=getCount");
-            const data = await res.json();
-            document.getElementById('attendance-counter').innerText = `👥 Live Attendance: ${data.count} Staff Online`;
-        } catch (e) {}
-    }
-
+    // --- 2. THE GATEKEEPER (Clock Logic) ---
     function updateClock() {
+        if (inMeeting) return;
+
         const now = new Date();
         const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const day = nigeria.getDay(); 
@@ -228,55 +220,43 @@
         
         const statusBox = document.getElementById('time-status');
         const loginBtn = document.getElementById('login-btn');
-        const counterBox = document.getElementById('attendance-counter');
-        const adminNote = document.getElementById('admin-note');
         const userIn = document.getElementById('username').value.trim().toLowerCase();
 
         const isFriday = (day === 5);
-        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
+        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55)); // 8:55 AM
 
-        if (userIn === SUPER_ADMIN) {
-            statusBox.style.background = "#fff9db"; statusBox.style.color = "#856404";
-            statusBox.innerHTML = "👑 SUPER ADMIN MODE";
-            loginBtn.disabled = false; loginBtn.innerText = "Enter Command Center";
-            loginBtn.className = "super-admin-mode";
-            adminNote.style.display = "block";
-            counterBox.style.display = "block";
+        // ADMIN BYPASS
+        if (ALL_BYPASS.includes(userIn)) {
+            statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+            statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE (24/7)";
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Enter Meeting Now";
             fetchAttendance();
         } 
-        else if (ADMIN_LIST.includes(userIn)) {
-            statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-            statusBox.innerHTML = "💎 ADMIN BYPASS";
-            loginBtn.disabled = false; loginBtn.innerText = "Admin Entry";
-            loginBtn.className = "admin-mode";
-            adminNote.style.display = "none";
-            counterBox.style.display = "block";
-            fetchAttendance();
-        }
+        // STAFF TIME CHECK
         else if (isFriday && isTime) {
             statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-            statusBox.innerHTML = "✅ Meeting is OPEN";
-            loginBtn.disabled = false; loginBtn.innerText = "Login & Join";
-            loginBtn.className = "";
-            adminNote.style.display = "none";
-            counterBox.style.display = "none";
-        } else {
-            statusBox.style.background = "#fff5f5"; statusBox.style.color = "var(--warning)";
-            statusBox.innerHTML = "🔒 Locked until Friday 8:55 AM";
+            statusBox.innerHTML = "✅ MEETING IS OPEN";
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Join Meeting";
+        } 
+        // LOCKED STATE
+        else {
+            statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
+            statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+            loginBtn.disabled = true;
             loginBtn.innerText = "Meeting Locked";
-            loginBtn.disabled = true; loginBtn.className = "";
-            adminNote.style.display = "none";
-            counterBox.style.display = "none";
         }
     }
 
+    // --- 3. LOGIN & ATTENDANCE ---
     async function handleLogin() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
         const deviceId = getDeviceId();
         const btn = document.getElementById('login-btn');
         
-        btn.innerText = "Authenticating Device..."; btn.disabled = true;
+        btn.innerText = "Verifying..."; btn.disabled = true;
 
         try {
             const response = await fetch(authURL, { 
@@ -287,114 +267,79 @@
             
             if (result.status === "success") {
                 localStorage.setItem('unitech_user_id', userIn);
-                localStorage.setItem('unitech_pass', passIn);
                 localStorage.setItem('unitech_display_name', result.displayName);
+                localStorage.setItem('unitech_session_active', "true");
                 startMeeting(result.displayName);
             } else {
                 alert(result.message);
-                updateClock(); 
+                btn.disabled = false;
+                updateClock();
             }
         } catch (e) {
-            alert("Connection Error.");
-            updateClock();
+            alert("Network Error. Check internet.");
+            btn.disabled = false;
         }
     }
 
+    // --- 4. THE MEETING (ANTI-GHOSTING & SECURITY) ---
     async function startMeeting(displayName) {
-    inMeeting = true;
+        if (api) api.dispose(); // CRITICAL: Kills any existing ghost session
+        inMeeting = true;
 
-    // --- PRO-TIP: DUAL DEVICE ECHO PROTECTION ---
-    const hasJoinedBefore = localStorage.getItem('unitech_already_joined');
-    if (hasJoinedBefore === "true") {
-        alert("📢 PRO-TIP: You are joining from a second device. Please MUTE your microphone and TURN OFF the speaker on this device to avoid audio echo/feedback.");
-    } else {
-        localStorage.setItem('unitech_already_joined', "true");
+        document.getElementById('setup-container').style.display = 'none';
+        document.getElementById('session-header').style.display = 'block';
+        document.getElementById('meeting-frame').style.display = 'block';
+
+        if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
+
+        // Attendance
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
+
+        api = new JitsiMeetExternalAPI("8x8.vc", {
+            roomName: ROOM_NAME,
+            width: "100%", height: "100%",
+            parentNode: document.querySelector('#meeting-frame'),
+            userInfo: { displayName: displayName },
+            configOverwrite: { 
+                startWithAudioMuted: true,
+                prejoinPageEnabled: false,
+                lobby: { enabled: true } // Enables Lobby feature
+            }
+        });
+
+        // Moderator Controls (Auto-Lock Room)
+        api.addEventListener('videoConferenceJoined', () => {
+            const userIn = localStorage.getItem('unitech_user_id');
+            if (ALL_BYPASS.includes(userIn)) {
+                api.executeCommand('toggleLobby', true); // Admin joins and locks the door
+            }
+        });
+
+        api.addEventListener('videoConferenceLeft', () => {
+            inMeeting = false;
+            localStorage.removeItem('unitech_session_active');
+            if (wakeLock) wakeLock.release();
+            api.dispose();
+            window.location.reload();
+        });
     }
 
-    document.getElementById('setup-container').style.display = 'none';
-    const header = document.getElementById('session-header');
-    const frame = document.getElementById('meeting-frame');
-    header.style.display = 'block'; frame.style.display = 'block';
-    
-    const headerHeight = header.offsetHeight;
-    frame.style.marginTop = headerHeight + 'px';
-    frame.style.height = `calc(100vh - ${headerHeight}px)`;
-
-    if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
-
-    fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
-
-    api = new JitsiMeetExternalAPI("8x8.vc", {
-        roomName: ROOM_NAME,
-        width: "100%", height: "100%",
-        parentNode: document.querySelector('#meeting-frame'),
-        userInfo: { displayName: displayName },
-        configOverwrite: { 
-            startWithAudioMuted: true, 
-            prejoinPageEnabled: false, 
-            disableBeforeUnload: true 
-        }
-    });
-
-    api.addEventListener('videoConferenceLeft', () => {
-        inMeeting = false;
-        if (wakeLock) wakeLock.release();
-        // Clear the joined flag so they can reconnect later if needed
-        localStorage.removeItem('unitech_already_joined'); 
-        header.style.display = 'none'; frame.style.display = 'none';
-        document.getElementById('post-meeting-container').style.display = 'block';
-        api.dispose();
-    });
-}
-    async function resetUserDevice() {
-        const target = prompt("Enter Username to Reset Device ID:");
-        if (!target) return;
+    async function fetchAttendance() {
         try {
-            const res = await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_device", username: target }) });
+            const res = await fetch(scriptURL + "?action=getCount");
             const data = await res.json();
-            alert(data.message);
-        } catch (e) { alert("Failed to connect."); }
+            document.getElementById('attendance-counter').innerText = `👥 Live Attendance: ${data.count} Staff Online`;
+        } catch (e) {}
     }
 
-    async function clearAttendanceData() {
-        if (!confirm("Are you sure you want to wipe the attendance list for today?")) return;
-        try {
-            const res = await fetch(scriptURL, { 
-                method: 'POST', 
-                body: JSON.stringify({ action: "clear_attendance" }) 
-            });
-            alert("Attendance list has been cleared successfully.");
-            fetchAttendance();
-        } catch (e) { alert("Error clearing attendance."); }
+    function logout() { 
+        if (api) api.dispose();
+        localStorage.clear(); 
+        window.location.reload(); 
     }
-
-    function revealAdminButton() {
-        if (prompt("Admin Password:") === "Salako2020") {
-            document.getElementById('admin-download-btn').style.display = "block";
-        }
-    }
-
-    function logout() { inMeeting = false; localStorage.clear(); window.location.reload(); }
-
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-    document.getElementById('install-btn-main').addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') document.getElementById('install-overlay').style.display = 'none';
-        } else {
-            alert("Open browser menu and select 'Add to Home Screen'.");
-        }
-    });
-
-    setInterval(updateClock, 1000);
-    setInterval(() => {
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
-        if (ALL_BYPASS.includes(userIn)) fetchAttendance();
-    }, 30000);
-</script>
+</script> 
 </body>
 </html>
+
 
 
