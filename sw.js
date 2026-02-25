@@ -1,4 +1,4 @@
-const CACHE_NAME = 'unglobal-v3';
+const CACHE_NAME = 'unglobal-v4'; // Incremented version to v4
 const assets = [
   './',
   './index.html',
@@ -6,18 +6,17 @@ const assets = [
   './logo.png'
 ];
 
-// Install and Cache Assets
+// 1. Install and Cache Assets
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  self.skipWaiting(); // Force the new service worker to become active immediately
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Use cache.addAll with caution: if one asset fails, the whole install fails
       return cache.addAll(assets);
     })
   );
 });
 
-// Activate and Clean Old Caches
+// 2. Activate and Clean Old Caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -26,28 +25,33 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Ensure the new Service Worker takes control of the page immediately
+  return self.clients.claim(); 
 });
 
-// Fetch Logic: Strategic Handling
+// 3. Strategic Fetch Handling
 self.addEventListener('fetch', (event) => {
-    // IMPORTANT: Ignore Jitsi/8x8 and Google Script URLs
-    // These must ALWAYS be live and should not be handled by the Service Worker cache
+    const url = event.request.url;
+
+    // CRITICAL: Never cache these. They must always be LIVE.
     if (
-        event.request.url.includes('8x8.vc') || 
-        event.request.url.includes('google.com') ||
-        event.request.url.includes('googleapis.com')
+        url.includes('8x8.vc') || 
+        url.includes('google.com') ||
+        url.includes('googleapis.com') ||
+        url.includes('exec') // Matches your Google Script macros
     ) {
         return; 
     }
 
+    // Network-First Strategy for index.html
+    // This ensures that the Friday 8:55 AM lock is always accurate
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                // If network is successful, return the response
                 return response;
             })
             .catch(() => {
-                // If network fails (offline), try the cache
+                // If offline, provide the cached version
                 return caches.match(event.request);
             })
     );
