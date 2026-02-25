@@ -1,5 +1,4 @@
-<!DOCTYPE html>                    
-  
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="logo.png">
-    <link rel="manifest" href="manifest.json?v=3">
+    <link rel="manifest" href="manifest.json?v=4">
 
     <style>
         :root {
@@ -75,7 +74,7 @@
         button:disabled { background-color: #ccc; cursor: not-allowed; }
 
         .admin-mode { background-color: var(--accent) !important; }
-        .super-admin-mode { background: linear-gradient(to right, #b8860b, #ffd700) !important; color: #000 !important; }
+        .super-admin-mode { background: linear-gradient(to right, #b8860b, #ffd700) !important; color: #000 !important; font-weight: bold; }
 
         #session-header {
             display: none; background: white; width: 100%;
@@ -86,7 +85,12 @@
 
         #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
 
-        #meeting-frame { display: none; width: 100vw; background: black; }
+        /* Full Screen Fix: Meeting frame now covers everything */
+        #meeting-frame { 
+            display: none; position: fixed; top: 0; left: 0; 
+            width: 100vw; height: 100vh; background: black; z-index: 500; 
+        }
+
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
         #admin-download-btn { display: none; margin-top: 20px; background-color: var(--success); }
 
@@ -97,6 +101,13 @@
         }
         #install-overlay h2 { margin-bottom: 10px; font-size: 20px; }
         #install-btn-main { background: var(--success); width: auto; padding: 15px 40px; margin-top: 20px; }
+        
+        /* The Cancel Button */
+        .close-x {
+            position: absolute; top: 20px; right: 30px; font-size: 35px;
+            cursor: pointer; color: white; font-weight: bold; opacity: 0.8;
+        }
+
         #ios-instructions {
             display: none; background: white; color: black; padding: 20px; 
             border-radius: 15px; width: 80%; max-width: 300px; margin-top: 20px;
@@ -106,6 +117,7 @@
 <body>
 
 <div id="install-overlay">
+    <span class="close-x" onclick="document.getElementById('install-overlay').style.display='none'">&times;</span>
     <img src="logo.png" style="max-width: 120px; margin-bottom: 20px;">
     <h2>UNGLOBAL Weekly Meeting</h2>
     <p>Install the App to enable background audio & microphone.</p>
@@ -132,7 +144,7 @@
     <div id="attendance-counter">👥 Live Attendance: Fetching...</div>
 
     <div id="admin-note" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #ffeeba;">
-        ⚠️ <strong>Super Admin Checklist:</strong><br>
+        👑 <strong>Super Admin Checklist:</strong><br>
         • Ensure <strong>Otter.ai</strong> is synced.<br>
         • <span onclick="resetUserDevice()" style="text-decoration: underline; cursor: pointer; color: #0078d4;">Reset Staff Device ID</span><br>
         • <span onclick="clearAttendanceData()" style="text-decoration: underline; cursor: pointer; color: #d9534f;">Clear Attendance List</span>
@@ -188,13 +200,12 @@
     // --- 2. STARTUP LOGIC ---
     window.onload = () => {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=3');
+            navigator.serviceWorker.register('./sw.js?v=4');
         }
 
         const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
         if (isApp) {
-            // IN-APP: Hide install screen and Auto-Resume
             document.getElementById('install-overlay').style.display = 'none';
             const sessionActive = localStorage.getItem('unitech_session_active');
             const savedName = localStorage.getItem('unitech_display_name');
@@ -202,7 +213,6 @@
                 startMeeting(savedName);
             }
         } else {
-            // IN-BROWSER: Check if they previously installed it
             if (localStorage.getItem('app_already_installed') === 'true') {
                 document.body.innerHTML = `
                     <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px; font-family:sans-serif;">
@@ -212,10 +222,9 @@
                         <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">I'm still seeing this? Refresh</button>
                     </div>
                 `;
-                return; // Stop execution
+                return;
             } else {
                 document.getElementById('install-overlay').style.display = 'flex';
-                // Check if iOS
                 if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
                     document.getElementById('ios-instructions').style.display = 'block';
                     document.getElementById('install-btn-main').style.display = 'none';
@@ -227,63 +236,61 @@
         setInterval(updateClock, 1000);
     };
 
-    // --- 3. THE GATEKEEPER (Clock & Admin Logic) ---
+    // --- 3. THE GATEKEEPER ---
     function updateClock() {
-    if (inMeeting) return;
+        if (inMeeting) return;
 
-    const now = new Date();
-    const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-    const day = nigeria.getDay(); 
-    const hrs = nigeria.getHours();
-    const mins = nigeria.getMinutes();
-    
-    const statusBox = document.getElementById('time-status');
-    const loginBtn = document.getElementById('login-btn');
-    const adminNote = document.getElementById('admin-note');
-    const userIn = document.getElementById('username').value.trim().toLowerCase();
+        const now = new Date();
+        const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+        const day = nigeria.getDay(); 
+        const hrs = nigeria.getHours();
+        const mins = nigeria.getMinutes();
+        
+        const statusBox = document.getElementById('time-status');
+        const loginBtn = document.getElementById('login-btn');
+        const adminNote = document.getElementById('admin-note');
+        const userIn = document.getElementById('username').value.trim().toLowerCase();
 
-    const isFriday = (day === 5);
-    const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
+        const isFriday = (day === 5);
+        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
 
-    // --- SUPER ADMIN LOGIC (Dayosalako) ---
-    if (userIn === SUPER_ADMIN) {
-        statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
-        statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
-        loginBtn.disabled = false;
-        loginBtn.innerText = "Enter as Super Admin";
-        loginBtn.className = "super-admin-mode"; // Turns button Gold
-        adminNote.style.display = "block"; // Shows Checklist & Reset tools
-        document.getElementById('attendance-counter').style.display = "block";
-        fetchAttendance();
-    } 
-    // --- ADMIN LOGIC (The others) ---
-    else if (ADMIN_LIST.includes(userIn)) {
-        statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-        statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
-        loginBtn.disabled = false;
-        loginBtn.innerText = "Enter Admin Meeting";
-        loginBtn.className = "admin-mode"; // Turns button Blue
-        adminNote.style.display = "none"; 
-        document.getElementById('attendance-counter').style.display = "block";
-        fetchAttendance();
-    } 
-    // --- STAFF LOGIC ---
-    else {
-        loginBtn.className = ""; // Reset to default Navy
-        adminNote.style.display = "none";
-        if (isFriday && isTime) {
-            statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-            statusBox.innerHTML = "✅ MEETING IS OPEN";
+        if (userIn === SUPER_ADMIN) {
+            statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
+            statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
             loginBtn.disabled = false;
-            loginBtn.innerText = "Join Meeting";
-        } else {
-            statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-            statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
-            loginBtn.disabled = true;
-            loginBtn.innerText = "Meeting Locked";
+            loginBtn.innerText = "Enter as Super Admin";
+            loginBtn.className = "super-admin-mode";
+            adminNote.style.display = "block";
+            document.getElementById('attendance-counter').style.display = "block";
+            fetchAttendance();
+        } 
+        else if (ADMIN_LIST.includes(userIn)) {
+            statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+            statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Enter Admin Meeting";
+            loginBtn.className = "admin-mode";
+            adminNote.style.display = "none"; 
+            document.getElementById('attendance-counter').style.display = "block";
+            fetchAttendance();
+        } 
+        else {
+            loginBtn.className = "";
+            adminNote.style.display = "none";
+            if (isFriday && isTime) {
+                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
+                statusBox.innerHTML = "✅ MEETING IS OPEN";
+                loginBtn.disabled = false;
+                loginBtn.innerText = "Join Meeting";
+            } else {
+                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
+                statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+                loginBtn.disabled = true;
+                loginBtn.innerText = "Meeting Locked";
+            }
         }
     }
-}
+
     // --- 4. AUTHENTICATION ---
     async function handleLogin() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
@@ -357,7 +364,7 @@
         });
     }
 
-    // --- 6. INSTALL & ADMIN TOOLS ---
+    // --- 6. TOOLS & INSTALL ---
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
@@ -376,7 +383,7 @@
 
     window.addEventListener('appinstalled', () => {
         localStorage.setItem('app_already_installed', 'true');
-        alert("✅ Installed! Close this browser and open the 'UNGLOBAL' App.");
+        alert("✅ Installed! Open the 'UNGLOBAL' App.");
     });
 
     async function fetchAttendance() {
@@ -387,17 +394,32 @@
         } catch (e) {}
     }
 
+    async function resetUserDevice() {
+        const target = prompt("Enter Username to Reset:");
+        if (target) {
+            await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_device", username: target.toLowerCase() }) });
+            alert("Reset request sent.");
+        }
+    }
+
+    async function clearAttendanceData() {
+        if (confirm("Clear attendance?")) {
+            await fetch(scriptURL, { method: 'POST', body: JSON.stringify({ action: "clear_attendance" }) });
+            alert("Attendance cleared.");
+        }
+    }
+
+    function revealAdminButton() {
+        if (prompt("Admin Password:") === "Salako2020") {
+            document.getElementById('admin-download-btn').style.display = "block";
+        }
+    }
+
     function logout() { 
         if (api) api.dispose();
         localStorage.clear(); 
         window.location.reload(); 
     }
-</script>                     
-  
+</script>
 </body>
 </html>
-
-
-
-
-
