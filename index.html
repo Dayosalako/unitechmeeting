@@ -387,7 +387,9 @@
             }
         }
         updateClock(); setInterval(updateClock, 1000); setInterval(fetchAttendance, 10000);
-    };
+    };                                        
+  
+  
 
     function updateClock() {
     if (inMeeting) return;
@@ -449,32 +451,77 @@
 }
 
     async function handleAuth() {
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
-        const passIn = document.getElementById('staff-password').value;
-        const nameIn = document.getElementById('display_name').value.trim();
-        const secAns = document.getElementById('security_answer')?.value.trim();
-        const btn = document.getElementById('login-btn');
+    const userIn = document.getElementById('username').value.trim().toLowerCase();
+    const passIn = document.getElementById('staff-password').value;
+    const nameIn = document.getElementById('display_name').value.trim();
+    const secAns = document.getElementById('security_answer')?.value.trim();
+    const btn = document.getElementById('login-btn');
 
-        if (authMode === 'signup' && (!userIn || !passIn || !nameIn || !secAns)) { showAlert("Fill all fields."); return; }
-        btn.classList.add('btn-loading'); btn.disabled = true;
-
-        try {
-            const response = await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: authMode === 'signup' ? "signup" : "login_check", username: userIn, password: passIn, displayName: nameIn, deviceId: getDeviceId(), securityAnswer: secAns })});
-            const result = await response.json();
-            if (result.status === "success") {
-                if (authMode === 'signup') { showAlert("Account Created! You can now Login."); toggleAuthMode('login'); } 
-                else {
-                    localStorage.setItem('unitech_user_id', userIn);
-                    localStorage.setItem('unitech_display_name', result.displayName);
-                    localStorage.setItem('unitech_session_active', "true");
-                    if (userIn === SUPER_ADMIN) document.getElementById('admin-note').style.display = 'block';
-                    if (ALL_BYPASS.includes(userIn)) document.getElementById('attendance-counter').style.display = 'block';
-                    startMeeting(result.displayName);
-                }
-            } else { showAlert(result.message); }
-        } catch (e) { showAlert("Connection error."); }
-        btn.classList.remove('btn-loading'); btn.disabled = false;
+    if (authMode === 'signup' && (!userIn || !passIn || !nameIn || !secAns)) { 
+        showAlert("Fill all fields."); 
+        return; 
     }
+
+    btn.classList.add('btn-loading'); 
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(authURL, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                action: authMode === 'signup' ? "signup" : "login_check", 
+                username: userIn, 
+                password: passIn, 
+                displayName: nameIn, 
+                deviceId: getDeviceId(), 
+                securityAnswer: secAns 
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+            if (authMode === 'signup') {
+                showAlert("Account Created! You can now Login.");
+                toggleAuthMode('login');
+            } else {
+                // --- TIME GATE CHECK FOR LOGIN ---
+                const now = new Date();
+                const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+                const day = nigeria.getDay(), hrs = nigeria.getHours(), mins = nigeria.getMinutes();
+                const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
+
+                // If NOT an Admin and NOT within the Friday window, block access
+                if (!ALL_BYPASS.includes(userIn) && !isMeetingWindow) {
+                    showAlert("🔒 Login Denied: The meeting session is currently closed.");
+                    btn.classList.remove('btn-loading');
+                    btn.disabled = false;
+                    return; // Stop the login process
+                }
+                // ---------------------------------
+
+                // Set persistent session data
+                localStorage.setItem('unitech_user_id', userIn);
+                localStorage.setItem('unitech_display_name', result.displayName);
+                localStorage.setItem('unitech_session_active', "true");
+
+                // Enable Admin features if applicable
+                if (userIn === SUPER_ADMIN) document.getElementById('admin-note').style.display = 'block';
+                if (ALL_BYPASS.includes(userIn)) document.getElementById('attendance-counter').style.display = 'block';
+
+                startMeeting(result.displayName);
+            }
+        } else {
+            showAlert(result.message);
+        }
+    } catch (e) {
+        showAlert("Connection error.");
+    }
+
+    // Reset button state if login failed or was blocked
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+}  
 
     async function startMeeting(displayName) {
         if (api) api.dispose(); inMeeting = true;
@@ -511,4 +558,5 @@
 </script>
 </body>
 </html>
+
 
