@@ -11,8 +11,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // If any asset in the array is missing, the install will fail. 
-      // Ensure logo.png and manifest.json exist in your root folder.
+      console.log('SW: Caching App Shell');
       return cache.addAll(assets);
     })
   );
@@ -25,18 +24,17 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim()) // Ensures PWA is active immediately
   );
 });
 
 // Fetch Logic: Strategic Handling
 self.addEventListener('fetch', (event) => {
-    // IMPORTANT: Ignore Jitsi/8x8 and Google Script URLs
-    // These must ALWAYS be live and should not be handled by the Service Worker cache.
-    // Caching these would break the meeting connection and the login verification.
+    // IGNORE external API calls and authentication scripts
     if (
         event.request.url.includes('8x8.vc') || 
         event.request.url.includes('google.com') ||
+        event.request.url.includes('google-analytics.com') ||
         event.request.url.includes('googleapis.com') ||
         event.request.url.includes('googleusercontent.com')
     ) {
@@ -46,12 +44,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                // If network is successful, return the response immediately
                 return response;
             })
             .catch(() => {
-                // If network fails (offline), attempt to serve from the cache
-                return caches.match(event.request);
+                // If offline, serve cached index.html
+                return caches.match(event.request).then(cachedResponse => {
+                  return cachedResponse || caches.match('./index.html');
+                });
             })
     );
 });
