@@ -56,7 +56,6 @@
             transition: all 0.3s ease;
         }
 
-        /* SUPER ADMIN SPECIFIC CLASS */
         .super-admin-status {
             background: var(--gold) !important;
             color: #000 !important;
@@ -77,23 +76,49 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
+        /* UPDATED TAB SYSTEM TO PREVENT SHIFTING */
+        .tab-container {
+            display: flex; 
+            margin-bottom: 20px; 
+            border-bottom: 2px solid #eee;
+            position: relative;
+        }
+        .tab-item {
+            flex: 1; 
+            padding: 12px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            color: #999;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .tab-item.active {
+            color: var(--navy);
+        }
+        .tab-indicator {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50%;
+            height: 3px;
+            background-color: var(--navy);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         input, select {
             width: 100%; padding: 12px 15px; margin-bottom: 15px;
             border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none;
         }
 
-        /* PREMIUM BUTTON MORPHING */
         button {
             width: 100%; padding: 14px; background-color: var(--navy); color: white;
             border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative; overflow: hidden;
         }
-
         button:active { transform: scale(0.97); }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        /* SUPER ADMIN BUTTON CLASS */
         .super-admin-btn {
             background: var(--gold) !important;
             color: #000 !important;
@@ -116,7 +141,6 @@
             text-align: center; border-bottom: 2px solid var(--accent);
             position: fixed; top: 0; z-index: 999;
         }
-
         #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
         #meeting-frame { display: none; width: 100vw; background: black; }
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
@@ -127,9 +151,7 @@
             color: white; text-align: center; background: rgba(0, 31, 63, 0.85) !important;
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
         }
-        
         .close-x { position: absolute; top: 20px; right: 30px; font-size: 35px; cursor: pointer; color: white; font-weight: bold; opacity: 0.8; }
-
         #ios-instructions {
             display: none; background: white; color: black; padding: 20px; 
             border-radius: 15px; width: 80%; max-width: 300px; margin-top: 20px;
@@ -209,9 +231,10 @@
         • <span onclick="clearAttendanceData()" style="text-decoration: underline; cursor: pointer; color: #d9534f;">Clear Attendance List</span>
     </div>
 
-    <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee;">
-        <div id="tab-login" onclick="toggleAuthMode('login')" style="flex:1; padding:10px; cursor:pointer; font-weight:700; color:var(--navy); border-bottom: 3px solid var(--navy);">LOGIN</div>
-        <div id="tab-signup" onclick="toggleAuthMode('signup')" style="flex:1; padding:10px; cursor:pointer; font-weight:700; color:#999;">SIGN UP</div>
+    <div class="tab-container">
+        <div id="tab-login" class="tab-item active" onclick="toggleAuthMode('login')">LOGIN</div>
+        <div id="tab-signup" class="tab-item" onclick="toggleAuthMode('signup')">SIGN UP</div>
+        <div id="tab-indicator" class="tab-indicator"></div>
     </div>
 
     <input type="text" id="username" placeholder="Username" oninput="updateClock()">
@@ -274,6 +297,7 @@
 
     function forgotPassword() { document.getElementById('recovery-modal').style.display = 'flex'; }
     function closeRecoveryModal() { document.getElementById('recovery-modal').style.display = 'none'; }
+    
     function showRecoveryStep2() { 
         if(!document.getElementById('recover-username').value.trim()) { showAlert("Enter username."); return; }
         document.getElementById('recovery-step-1').style.display = 'none'; 
@@ -307,6 +331,30 @@
         let id = localStorage.getItem('unitech_device_id');
         if (!id) { id = 'dev-' + Math.random().toString(36).substr(2, 9) + Date.now(); localStorage.setItem('unitech_device_id', id); }
         return id;
+    }
+
+    function toggleAuthMode(mode) {
+        authMode = mode;
+        const indicator = document.getElementById('tab-indicator');
+        const loginTab = document.getElementById('tab-login');
+        const signupTab = document.getElementById('tab-signup');
+        
+        if (mode === 'signup') {
+            indicator.style.left = '50%';
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            document.getElementById('display_name').style.display = 'block';
+            document.getElementById('security-section').style.display = 'block';
+            document.getElementById('forgot-password-area').style.visibility = 'hidden';
+        } else {
+            indicator.style.left = '0';
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            document.getElementById('display_name').style.display = 'none';
+            document.getElementById('security-section').style.display = 'none';
+            document.getElementById('forgot-password-area').style.visibility = 'visible';
+        }
+        updateClock();
     }
 
     window.onload = () => {
@@ -343,7 +391,6 @@
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
 
-        // RESET CLASSES
         statusBox.classList.remove('super-admin-status');
         loginBtn.classList.remove('super-admin-btn');
 
@@ -365,26 +412,14 @@
         }
     }
 
-    function toggleAuthMode(mode) {
-        authMode = mode;
-        document.getElementById('display_name').style.display = (mode === 'signup' ? 'block' : 'none');
-        document.getElementById('security-section').style.display = (mode === 'signup' ? 'block' : 'none');
-        document.getElementById('tab-login').style.cssText = (mode === 'login' ? 'color:var(--navy); border-bottom:3px solid var(--navy);' : 'color:#999; border-bottom:none;');
-        document.getElementById('tab-signup').style.cssText = (mode === 'signup' ? 'color:var(--navy); border-bottom:3px solid var(--navy);' : 'color:#999; border-bottom:none;');
-        document.getElementById('forgot-password-area').style.visibility = (mode === 'login' ? 'visible' : 'hidden');
-        updateClock();
-    }
-
     async function handleAuth() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
         const nameIn = document.getElementById('display_name').value.trim();
-        const confPass = document.getElementById('confirm-password')?.value;
         const secAns = document.getElementById('security_answer')?.value.trim();
         const btn = document.getElementById('login-btn');
 
         if (authMode === 'signup' && (!userIn || !passIn || !nameIn || !secAns)) { showAlert("Fill all fields."); return; }
-
         btn.classList.add('btn-loading'); btn.disabled = true;
 
         try {
