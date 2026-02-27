@@ -1,4 +1,5 @@
-<!DOCTYPE html>                                                            
+<!DOCTYPE html>                                                                                
+  
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -187,6 +188,23 @@
     backdrop-filter: blur(15px); /* Professional blur effect */
     -webkit-backdrop-filter: blur(15px);
 }
+
+        /* ADD TO YOUR EXISTING STYLE BLOCK */
+.spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+        
     </style>
 </head>
 <body>
@@ -239,6 +257,10 @@
     </div>
     
     <button id="login-btn" onclick="handleAuth()" disabled>Locked</button>
+
+<div id="forgot-password-area" style="margin-top: 15px;">
+    <a href="javascript:void(0)" onclick="forgotPassword()" style="color: var(--accent); font-size: 12px; text-decoration: none; font-weight: 600;">Forgot Password?</a>
+</div>
 
     <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 11px; text-align: left; border: 1px solid #c6f6d5;">
         🤖 <strong>System:</strong> New staff must "Sign Up" first.
@@ -307,15 +329,34 @@
     if (isApp) {
         document.getElementById('install-overlay').style.display = 'none';
         
-        // --- AUTO-LOGIN LOGIC ---
+        // --- SECURE AUTO-LOGIN LOGIC ---
         const sessionActive = localStorage.getItem('unitech_session_active');
         const savedName = localStorage.getItem('unitech_display_name');
+        const userId = localStorage.getItem('unitech_user_id'); // We need this to check for Admin bypass
         
         if (sessionActive === "true" && savedName) {
-            startMeeting(savedName);
-            return; // Exit here so updateClock doesn't interfere with the transition
+            const now = new Date();
+            const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+            const day = nigeria.getDay(); 
+            const hrs = nigeria.getHours();
+            const mins = nigeria.getMinutes();
+            
+            const isFriday = (day === 5);
+            const isAfterStart = (hrs > 8 || (hrs === 8 && mins >= 55));
+            const isBeforeEnd = (hrs < 14); 
+            const isMeetingWindow = isFriday && isAfterStart && isBeforeEnd;
+
+            // Only auto-start if it's meeting time OR if the user is an Admin
+            if (isMeetingWindow || ALL_BYPASS.includes(userId)) {
+                startMeeting(savedName);
+                return; 
+            } else {
+                // If logged in but it's not meeting time, show the portal and a toast
+                showAlert("Welcome back! The meeting portal is currently locked.");
+            }
         }
     } else {
+        // Browser Detection Logic
         if (localStorage.getItem('app_already_installed') === 'true') {
             document.body.innerHTML = `
                 <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px;">
@@ -338,6 +379,8 @@
     updateClock();
     setInterval(updateClock, 1000);
 };
+  
+  
   
 // --- New Professional Alert Helper ---
 function showAlert(message) {
@@ -416,7 +459,7 @@ function updateClock() {
     }
 }
 
-async function handleAuth() {
+async function handleAuth() {                                                                                
     const userIn = document.getElementById('username').value.trim().toLowerCase();
     const passIn = document.getElementById('staff-password').value;
     const nameIn = document.getElementById('display_name').value.trim();
@@ -462,24 +505,25 @@ async function handleAuth() {
     }
 }
     function toggleAuthMode(mode) {
-        authMode = mode;
-        const nameField = document.getElementById('display_name');
-        const tabL = document.getElementById('tab-login');
-        const tabS = document.getElementById('tab-signup');
+    authMode = mode;
+    const nameField = document.getElementById('display_name');
+    const tabL = document.getElementById('tab-login');
+    const tabS = document.getElementById('tab-signup');
+    const forgotArea = document.getElementById('forgot-password-area');
 
-        if (mode === 'signup') {
-            nameField.style.display = 'block';
-            tabS.style.color = "var(--navy)"; tabS.style.borderBottom = "3px solid var(--navy)";
-            tabL.style.color = "#999"; tabL.style.borderBottom = "none";
-        } else {
-            nameField.style.display = 'none';
-            tabL.style.color = "var(--navy)"; tabL.style.borderBottom = "3px solid var(--navy)";
-            tabS.style.color = "#999"; tabS.style.borderBottom = "none";
-        }
-        updateClock();
+    if (mode === 'signup') {
+        nameField.style.display = 'block';
+        tabS.style.color = "var(--navy)"; tabS.style.borderBottom = "3px solid var(--navy)";
+        tabL.style.color = "#999"; tabL.style.borderBottom = "none";
+        forgotArea.style.visibility = 'hidden'; // Hide during signup
+    } else {
+        nameField.style.display = 'none';
+        tabL.style.color = "var(--navy)"; tabL.style.borderBottom = "3px solid var(--navy)";
+        tabS.style.color = "#999"; tabS.style.borderBottom = "none";
+        forgotArea.style.visibility = 'visible'; // Show during login
     }
-
-    async                    
+    updateClock();
+}                    
   async function handleAuth() {
     const userIn = document.getElementById('username').value.trim().toLowerCase();
     const passIn = document.getElementById('staff-password').value;
@@ -487,12 +531,18 @@ async function handleAuth() {
     const deviceId = getDeviceId();
     const btn = document.getElementById('login-btn');
 
+    // Basic Validation
     if (authMode === 'signup' && (!userIn || !passIn || !nameIn)) {
-        alert("Please fill in all fields."); 
+        showAlert("Please fill in all fields."); 
+        return;
+    }
+    if (authMode === 'login' && (!userIn || !passIn)) {
+        showAlert("Please enter your username and password.");
         return;
     }
 
-    btn.innerText = "Processing..."; 
+    // UI Feedback: Start Spinner
+    btn.innerHTML = '<span class="spinner"></span> Verifying...'; 
     btn.disabled = true;
 
     try {
@@ -506,34 +556,40 @@ async function handleAuth() {
                 deviceId: deviceId 
             }) 
         });
+        
         const result = await response.json();
         
         if (result.status === "success") {
             if (authMode === 'signup') {
-                alert("Account Created! You can now Login.");
+                showAlert("Account Created! You can now Login.");
                 toggleAuthMode('login');
-                btn.innerText = "Join Meeting"; // Reset button text
+                // Reset button for login
+                btn.innerHTML = "Join Meeting"; 
                 btn.disabled = false;
             } else {
-                // --- SAVE DATA PERMANENTLY ---
+                // Persistent Login Storage
                 localStorage.setItem('unitech_user_id', userIn);
                 localStorage.setItem('unitech_display_name', result.displayName);
-                localStorage.setItem('unitech_session_active', "true"); // This enables the auto-login
+                localStorage.setItem('unitech_session_active', "true");
                 
-                startMeeting(result.displayName);
+                showAlert("Access Granted. Connecting...");
+                setTimeout(() => { startMeeting(result.displayName); }, 1000);
             }
         } else {
-            alert(result.message); 
-            btn.disabled = false; 
-            btn.innerText = (authMode === 'signup' ? "Create My Account" : "Join Meeting");
+            // Logic if Login/Signup Fails (e.g., wrong password)
+            showAlert(result.message);
+            btn.disabled = false;
+            // Restore button text based on mode
+            btn.innerHTML = (authMode === 'signup' ? "Create My Account" : "Join Meeting");
             updateClock();
         }
     } catch (e) {
-        alert("Connection error."); 
+        // Logic for Network/Connection errors
+        showAlert("Connection error. Please check your internet.");
         btn.disabled = false;
-        btn.innerText = "Join Meeting";
+        btn.innerHTML = (authMode === 'signup' ? "Create My Account" : "Join Meeting");
     }
-}  
+} 
     async function startMeeting(displayName) {
         if (api) api.dispose(); 
         inMeeting = true;
@@ -615,9 +671,21 @@ async function handleAuth() {
     }
 
     function logout() { localStorage.clear(); window.location.reload(); }
+    function forgotPassword() {
+    const userIn = document.getElementById('username').value.trim();
+    const adminPhone = "2348000000000"; // Replace with your WhatsApp number
+    
+    let message = "Hello Admin, I need a password reset for my UNGLOBAL portal account.";
+    if (userIn) { message += ` My username is: ${userIn}`; }
+
+    if (confirm("Contact Admin via WhatsApp for a password reset?")) {
+        window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+}
 </script>
 </body>
 </html>
+
 
 
 
