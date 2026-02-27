@@ -104,6 +104,26 @@
             display: none; background: white; color: black; padding: 20px; 
             border-radius: 15px; width: 80%; max-width: 300px; margin-top: 20px;
         }
+
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 12px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+            user-select: none;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -149,7 +169,11 @@
 
     <input type="text" id="username" placeholder="Username" oninput="updateClock()">
     <input type="text" id="display_name" placeholder="Your Full Name" style="display:none;">
-    <input type="password" id="staff-password" placeholder="Password">
+
+    <div class="password-wrapper">
+        <input type="password" id="staff-password" placeholder="Password">
+        <span id="eye-icon" class="toggle-password" onclick="togglePasswordVisibility()">👁️</span>
+    </div>
     
     <button id="login-btn" onclick="handleAuth()" disabled>Locked</button>
 
@@ -186,6 +210,20 @@
     let wakeLock = null;
     let deferredPrompt;
     let authMode = 'login';
+
+    // Added Toggle Function (Fixed naming to match HTML)
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('staff-password');
+        const eyeIcon = document.getElementById('eye-icon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.innerText = '🔒';
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.innerText = '👁️';
+        }
+    }
 
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
