@@ -431,12 +431,16 @@
         loginBtn.disabled = false; 
         loginBtn.innerText = "Enter Portal";
         document.getElementById('attendance-counter').style.display = 'block'; // Admins see counter
-    } else if (authMode === 'signup') {
-        statusBox.style.background = "#f0fff4"; 
-        statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
-        loginBtn.disabled = false; 
-        loginBtn.innerText = "Create My Account";
-    } else {
+   } else if (authMode === 'signup') {
+    // This changes the box to a light green and the text to a darker success green
+    statusBox.style.background = "#f0fff4"; 
+    statusBox.style.color = "#28a745"; 
+    statusBox.style.border = "1px solid #c6f6d5";
+    statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
+    
+    loginBtn.disabled = false; 
+    loginBtn.innerText = "Create My Account";
+} else {
         if (isMeetingWindow) { 
             statusBox.style.background = "#f0fff4"; 
             statusBox.innerHTML = "✅ MEETING IS LIVE"; 
@@ -559,6 +563,7 @@
 </script>
 </body>
 </html>
+
 
 
 
