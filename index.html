@@ -311,22 +311,48 @@
         document.getElementById('recovery-step-2').style.display = 'block'; 
     }
 
-    async function submitRecovery() {
-        const user = document.getElementById('recover-username').value.trim();
-        const answer = document.getElementById('recover-answer').value.trim();
-        const newPass = document.getElementById('recover-new-pass').value;
-        const btn = document.getElementById('recover-submit-btn');
-        if (!answer || !newPass) { showAlert("Fill in all fields."); return; }
-        btn.classList.add('btn-loading'); btn.disabled = true;
-        try {
-            const response = await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_password", username: user.toLowerCase(), securityAnswer: answer.toLowerCase(), newPassword: newPass })});
-            const result = await response.json();
-            if (result.status === "success") { showAlert("✅ Password Updated!"); closeRecoveryModal(); } 
-            else { showAlert("❌ " + result.message); }
-        } catch (e) { showAlert("📡 Connection error."); }
-        btn.classList.remove('btn-loading'); btn.disabled = false;
-    }
+   async function submitRecovery() {
+    const user = document.getElementById('recover-username').value.trim();
+    const answer = document.getElementById('recover-answer').value.trim();
+    const newPass = document.getElementById('recover-new-pass').value;
+    const btn = document.getElementById('recover-submit-btn');
+    
+    if (!answer || !newPass) { showAlert("Fill in all fields."); return; }
+    
+    // START LOADING
+    btn.classList.add('btn-loading'); 
+    btn.disabled = true;
 
+    // MINIMIZE/HIDE THE POPUP IMMEDIATELY
+    closeRecoveryModal(); 
+    showAlert("⏳ Processing reset request...");
+
+    try {
+        const response = await fetch(authURL, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                action: "reset_password", 
+                username: user.toLowerCase(), 
+                securityAnswer: answer.toLowerCase(), 
+                newPassword: newPass 
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === "success") { 
+            showAlert("✅ Password Updated! You can now login."); 
+        } else { 
+            // If it fails, show the error and you might want to reopen the modal
+            showAlert("❌ " + result.message); 
+        }
+    } catch (e) { 
+        showAlert("📡 Connection error. Please try again."); 
+    }
+    
+    btn.classList.remove('btn-loading'); 
+    btn.disabled = false;
+}
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById('staff-password');
         const eyeIcon = document.getElementById('eye-icon');
@@ -563,6 +589,7 @@
 </script>
 </body>
 </html>
+
 
 
 
