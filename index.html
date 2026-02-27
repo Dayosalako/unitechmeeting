@@ -54,11 +54,18 @@
             border: 1px solid #feb2b2;
         }
 
+        /* ATTENDANCE COUNTER WITH SLIDE-DOWN ANIMATION */
         #attendance-counter {
             display: none; font-size: 12px; font-weight: 700; padding: 10px;
             border-radius: 8px; margin-bottom: 15px;
             background: #ebf8ff; color: #2b6cb0;
             border: 1px solid #bee3f8;
+            animation: slideDownCounter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes slideDownCounter {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         input, select {
@@ -66,13 +73,27 @@
             border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none;
         }
 
+        /* PREMIUM BUTTON MORPHING */
         button {
             width: 100%; padding: 14px; background-color: var(--navy); color: white;
             border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
-            transition: 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
         }
 
+        button:active { transform: scale(0.97); }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .btn-loading { color: transparent !important; pointer-events: none; }
+        .btn-loading::after {
+            content: ""; position: absolute; width: 22px; height: 22px;
+            top: 50%; left: 50%; margin: -11px 0 0 -11px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff; border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .admin-mode { background-color: var(--accent) !important; }
         .super-admin-mode { background: linear-gradient(to right, #b8860b, #ffd700) !important; color: #000 !important; font-weight: bold; }
@@ -85,97 +106,41 @@
         }
 
         #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
-
         #meeting-frame { display: none; width: 100vw; background: black; }
-
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
 
         #install-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10000;
-            flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center;
-            background: rgba(0, 31, 63, 0.85) !important;
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            z-index: 10000; flex-direction: column; justify-content: center; align-items: center; 
+            color: white; text-align: center; background: rgba(0, 31, 63, 0.85) !important;
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
         }
         
-        .close-x {
-            position: absolute; top: 20px; right: 30px; font-size: 35px;
-            cursor: pointer; color: white; font-weight: bold; opacity: 0.8;
-        }
+        .close-x { position: absolute; top: 20px; right: 30px; font-size: 35px; cursor: pointer; color: white; font-weight: bold; opacity: 0.8; }
 
         #ios-instructions {
             display: none; background: white; color: black; padding: 20px; 
             border-radius: 15px; width: 80%; max-width: 300px; margin-top: 20px;
         }
 
-        .password-wrapper {
-            position: relative;
-            width: 100%;
-        }
-
-        .password-wrapper input {
-            padding-right: 45px;
-        }
-
+        .password-wrapper { position: relative; width: 100%; }
+        .password-wrapper input { padding-right: 45px; }
         .toggle-password {
-            position: absolute;
-            right: 15px;
-            top: 12px;
-            cursor: pointer;
-            font-size: 18px;
-            color: #666;
-            user-select: none;
-            z-index: 100;
+            position: absolute; right: 15px; top: 12px; cursor: pointer;
+            font-size: 18px; color: #666; user-select: none; z-index: 100;
         }
 
         #custom-alert {
-            display: none;
-            position: fixed;
-            top: 25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 16px 28px;
-            border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-            z-index: 20000;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--navy);
+            display: none; position: fixed; top: 25px; left: 50%;
+            transform: translateX(-50%); background: white; padding: 16px 28px;
+            border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            z-index: 20000; font-weight: 600; font-size: 14px; color: var(--navy);
             border-left: 6px solid var(--accent);
             animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes slideDown {
-            from { top: -100px; opacity: 0; }
-            to { top: 25px; opacity: 1; }
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        #recovery-modal input {
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border: 2px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes slideDown { from { top: -100px; opacity: 0; } to { top: 25px; opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -187,12 +152,10 @@
         <span onclick="closeRecoveryModal()" style="position:absolute; top:15px; right:20px; font-size:24px; cursor:pointer; color:#999;">&times;</span>
         <h2 style="color:var(--navy); margin-top:0;">Account Recovery</h2>
         <p style="font-size:13px; color:#666; margin-bottom:20px;">Please verify your identity to reset your password.</p>
-        
         <div id="recovery-step-1">
             <input type="text" id="recover-username" placeholder="Username">
             <button onclick="showRecoveryStep2()" style="background:var(--accent);">Next</button>
         </div>
-
         <div id="recovery-step-2" style="display:none;">
             <p style="font-size:12px; font-weight:bold; color:var(--navy); text-align:left; margin-bottom:5px;">Security Question Answer:</p>
             <input type="text" id="recover-answer" placeholder="Your Security Answer">
@@ -218,9 +181,7 @@
     </div>
 </div>
 
-<div id="session-header">
-    <h3>UNGLOBAL Weekly Meeting: Official Portal</h3>
-</div>
+<div id="session-header"><h3>UNGLOBAL Weekly Meeting: Official Portal</h3></div>
 
 <div id="setup-container">
     <img src="logo.png" alt="Unitech Logo" class="logo" onerror="this.style.display='none'">
@@ -291,34 +252,25 @@
     const ADMIN_LIST = ["temitopeadeyemi", "faizeljappie", "kabiroyekunle", "topeokunlola"];
     const ALL_BYPASS = [SUPER_ADMIN, ...ADMIN_LIST];
 
-    let api = null;
-    let inMeeting = false;
-    let wakeLock = null;
-    let authMode = 'login';
+    let api = null; let inMeeting = false; let wakeLock = null; let authMode = 'login';
 
     function showAlert(message) {
         const alertBox = document.getElementById('custom-alert');
-        alertBox.innerText = message;
-        alertBox.style.display = 'block';
+        alertBox.innerText = message; alertBox.style.display = 'block';
         setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
     }
 
-    // --- RECOVERY MODAL FUNCTIONS ---
     function forgotPassword() {
         document.getElementById('recovery-modal').style.display = 'flex';
         document.getElementById('recovery-step-1').style.display = 'block';
         document.getElementById('recovery-step-2').style.display = 'none';
     }
 
-    function closeRecoveryModal() {
-        document.getElementById('recovery-modal').style.display = 'none';
-    }
-
-    function showRecoveryStep2() {
-        const user = document.getElementById('recover-username').value.trim();
-        if (!user) { showAlert("Please enter your username."); return; }
-        document.getElementById('recovery-step-1').style.display = 'none';
-        document.getElementById('recovery-step-2').style.display = 'block';
+    function closeRecoveryModal() { document.getElementById('recovery-modal').style.display = 'none'; }
+    function showRecoveryStep2() { 
+        if(!document.getElementById('recover-username').value.trim()) { showAlert("Enter username."); return; }
+        document.getElementById('recovery-step-1').style.display = 'none'; 
+        document.getElementById('recovery-step-2').style.display = 'block'; 
     }
 
     async function submitRecovery() {
@@ -326,54 +278,27 @@
         const answer = document.getElementById('recover-answer').value.trim();
         const newPass = document.getElementById('recover-new-pass').value;
         const btn = document.getElementById('recover-submit-btn');
-
         if (!answer || !newPass) { showAlert("Fill in all fields."); return; }
-        btn.innerHTML = '<span class="spinner"></span> Processing...';
-        btn.disabled = true;
-
+        btn.classList.add('btn-loading'); btn.disabled = true;
         try {
-            const response = await fetch(authURL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: "reset_password",
-                    username: user.toLowerCase(),
-                    securityAnswer: answer.toLowerCase(),
-                    newPassword: newPass
-                })
-            });
+            const response = await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_password", username: user.toLowerCase(), securityAnswer: answer.toLowerCase(), newPassword: newPass })});
             const result = await response.json();
-            if (result.status === "success") {
-                showAlert("✅ Password Updated!");
-                closeRecoveryModal();
-            } else {
-                showAlert("❌ " + result.message);
-                btn.disabled = false;
-                btn.innerText = "Reset Password";
-            }
-        } catch (e) {
-            showAlert("📡 Connection error.");
-            btn.disabled = false;
-        }
+            if (result.status === "success") { showAlert("✅ Password Updated!"); closeRecoveryModal(); } 
+            else { showAlert("❌ " + result.message); }
+        } catch (e) { showAlert("📡 Connection error."); }
+        btn.classList.remove('btn-loading'); btn.disabled = false;
     }
 
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById('staff-password');
         const eyeIcon = document.getElementById('eye-icon');
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            eyeIcon.innerText = '🔒';
-        } else {
-            passwordInput.type = 'password';
-            eyeIcon.innerText = '👁️';
-        }
+        passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
+        eyeIcon.innerText = (passwordInput.type === 'password') ? '👁️' : '🔒';
     }
 
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
-        if (!id) {
-            id = 'dev-' + Math.random().toString(36).substr(2, 9) + Date.now();
-            localStorage.setItem('unitech_device_id', id);
-        }
+        if (!id) { id = 'dev-' + Math.random().toString(36).substr(2, 9) + Date.now(); localStorage.setItem('unitech_device_id', id); }
         return id;
     }
 
@@ -384,14 +309,10 @@
             const sessionActive = localStorage.getItem('unitech_session_active');
             const savedName = localStorage.getItem('unitech_display_name');
             const userId = localStorage.getItem('unitech_user_id');
-            
             if (sessionActive === "true" && savedName) {
-                const now = new Date();
-                const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+                const now = new Date(); const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
                 const isMeetingWindow = (nigeria.getDay() === 5) && (nigeria.getHours() > 8 || (nigeria.getHours() === 8 && nigeria.getMinutes() >= 55)) && (nigeria.getHours() < 14);
-
                 if (isMeetingWindow || ALL_BYPASS.includes(userId)) {
-                    // Re-show admin specific elements if logged in as admin
                     if (userId === SUPER_ADMIN) document.getElementById('admin-note').style.display = 'block';
                     if (ALL_BYPASS.includes(userId)) document.getElementById('attendance-counter').style.display = 'block';
                     startMeeting(savedName);
@@ -404,20 +325,15 @@
                 document.getElementById('install-btn-main').style.display = 'none';
             }
         }
-        updateClock();
-        setInterval(updateClock, 1000);
-        setInterval(fetchAttendance, 10000);
+        updateClock(); setInterval(updateClock, 1000); setInterval(fetchAttendance, 10000);
     };
 
     function updateClock() {
         if (inMeeting) return;
-        const now = new Date();
-        const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+        const now = new Date(); const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const day = nigeria.getDay(), hrs = nigeria.getHours(), mins = nigeria.getMinutes();
-        const statusBox = document.getElementById('time-status');
-        const loginBtn = document.getElementById('login-btn');
+        const statusBox = document.getElementById('time-status'), loginBtn = document.getElementById('login-btn');
         const userIn = document.getElementById('username').value.trim().toLowerCase();
-        
         const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
 
         if (ALL_BYPASS.includes(userIn)) {
@@ -427,37 +343,18 @@
             statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
             loginBtn.disabled = false; loginBtn.innerText = "Create My Account";
         } else {
-            if (isMeetingWindow) {
-                statusBox.style.background = "#f0fff4"; statusBox.innerHTML = "✅ MEETING IS LIVE";
-                loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
-            } else {
-                statusBox.style.background = "#fff5f5"; statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)";
-                loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
-            }
+            if (isMeetingWindow) { statusBox.style.background = "#f0fff4"; statusBox.innerHTML = "✅ MEETING IS LIVE"; loginBtn.disabled = false; loginBtn.innerText = "Join Meeting"; }
+            else { statusBox.style.background = "#fff5f5"; statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)"; loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked"; }
         }
     }
 
     function toggleAuthMode(mode) {
         authMode = mode;
-        const nameField = document.getElementById('display_name');
-        const secSec = document.getElementById('security-section');
-        const tabL = document.getElementById('tab-login');
-        const tabS = document.getElementById('tab-signup');
-        const forgotArea = document.getElementById('forgot-password-area');
-
-        if (mode === 'signup') {
-            nameField.style.display = 'block';
-            secSec.style.display = 'block';
-            tabS.style.color = "var(--navy)"; tabS.style.borderBottom = "3px solid var(--navy)";
-            tabL.style.color = "#999"; tabL.style.borderBottom = "none";
-            forgotArea.style.visibility = 'hidden';
-        } else {
-            nameField.style.display = 'none';
-            secSec.style.display = 'none';
-            tabL.style.color = "var(--navy)"; tabL.style.borderBottom = "3px solid var(--navy)";
-            tabS.style.color = "#999"; tabS.style.borderBottom = "none";
-            forgotArea.style.visibility = 'visible';
-        }
+        document.getElementById('display_name').style.display = (mode === 'signup' ? 'block' : 'none');
+        document.getElementById('security-section').style.display = (mode === 'signup' ? 'block' : 'none');
+        document.getElementById('tab-login').style.cssText = (mode === 'login' ? 'color:var(--navy); border-bottom:3px solid var(--navy);' : 'color:#999; border-bottom:none;');
+        document.getElementById('tab-signup').style.cssText = (mode === 'signup' ? 'color:var(--navy); border-bottom:3px solid var(--navy);' : 'color:#999; border-bottom:none;');
+        document.getElementById('forgot-password-area').style.visibility = (mode === 'login' ? 'visible' : 'hidden');
         updateClock();
     }
 
@@ -465,116 +362,63 @@
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
         const nameIn = document.getElementById('display_name').value.trim();
-        const confPass = document.getElementById('confirm-password') ? document.getElementById('confirm-password').value : "";
-        const secAns = document.getElementById('security_answer') ? document.getElementById('security_answer').value.trim() : "";
-        const deviceId = getDeviceId();
+        const confPass = document.getElementById('confirm-password')?.value;
+        const secAns = document.getElementById('security_answer')?.value.trim();
         const btn = document.getElementById('login-btn');
 
-        if (authMode === 'signup') {
-            if (!userIn || !passIn || !nameIn || !secAns) { showAlert("Please fill in all fields."); return; }
-            if (passIn !== confPass) { showAlert("Passwords do not match."); return; }
-        }
+        if (authMode === 'signup' && (!userIn || !passIn || !nameIn || !secAns)) { showAlert("Fill all fields."); return; }
 
-        btn.innerHTML = '<span class="spinner"></span> Verifying...';
-        btn.disabled = true;
+        btn.classList.add('btn-loading'); btn.disabled = true;
 
         try {
-            const response = await fetch(authURL, { 
-                method: 'POST', 
-                body: JSON.stringify({ 
-                    action: authMode === 'signup' ? "signup" : "login_check", 
-                    username: userIn, password: passIn, displayName: nameIn, deviceId: deviceId, securityAnswer: secAns
-                }) 
-            });
+            const response = await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: authMode === 'signup' ? "signup" : "login_check", username: userIn, password: passIn, displayName: nameIn, deviceId: getDeviceId(), securityAnswer: secAns })});
             const result = await response.json();
-            
             if (result.status === "success") {
-                if (authMode === 'signup') {
-                    showAlert("Account Created! You can now Login.");
-                    toggleAuthMode('login');
-                } else {
+                if (authMode === 'signup') { showAlert("Account Created! You can now Login."); toggleAuthMode('login'); } 
+                else {
                     localStorage.setItem('unitech_user_id', userIn);
                     localStorage.setItem('unitech_display_name', result.displayName);
                     localStorage.setItem('unitech_session_active', "true");
-                    
-                    // SECURITY FIX: Show elements ONLY after successful login
                     if (userIn === SUPER_ADMIN) document.getElementById('admin-note').style.display = 'block';
                     if (ALL_BYPASS.includes(userIn)) document.getElementById('attendance-counter').style.display = 'block';
-                    
                     startMeeting(result.displayName);
                 }
-            } else {
-                showAlert(result.message);
-                btn.disabled = false;
-                btn.innerHTML = "Try Again";
-            }
-        } catch (e) {
-            showAlert("Connection error.");
-            btn.disabled = false;
-        }
+            } else { showAlert(result.message); }
+        } catch (e) { showAlert("Connection error."); }
+        btn.classList.remove('btn-loading'); btn.disabled = false;
     }
 
     async function startMeeting(displayName) {
-        if (api) api.dispose(); 
-        inMeeting = true;
+        if (api) api.dispose(); inMeeting = true;
         document.getElementById('setup-container').style.display = 'none';
-        const header = document.getElementById('session-header'), frame = document.getElementById('meeting-frame');
-        header.style.display = 'block'; frame.style.display = 'block';
-        frame.style.marginTop = header.offsetHeight + 'px';
-        frame.style.height = `calc(100vh - ${header.offsetHeight}px)`;
-
-        if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
-
-        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" }) });
-
-        api = new JitsiMeetExternalAPI("8x8.vc", {
-            roomName: ROOM_NAME,
-            width: "100%", height: "100%",
-            parentNode: frame,
-            userInfo: { displayName: displayName },
-            configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false }
-        });
-
-        api.addEventListener('videoConferenceLeft', () => {
-            inMeeting = false;
-            localStorage.removeItem('unitech_session_active');
-            window.location.reload();
-        });
+        const h = document.getElementById('session-header'), f = document.getElementById('meeting-frame');
+        h.style.display = 'block'; f.style.display = 'block';
+        f.style.marginTop = h.offsetHeight + 'px'; f.style.height = `calc(100vh - ${h.offsetHeight}px)`;
+        if ('wakeLock' in navigator) try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+        fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ name: displayName, action: "Joined" })});
+        api = new JitsiMeetExternalAPI("8x8.vc", { roomName: ROOM_NAME, parentNode: f, userInfo: { displayName: displayName }, configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false }});
+        api.addEventListener('videoConferenceLeft', () => { inMeeting = false; localStorage.removeItem('unitech_session_active'); window.location.reload(); });
     }
 
     async function fetchAttendance() {
-        const currentUserId = localStorage.getItem('unitech_user_id') || "";
-        if(!ALL_BYPASS.includes(currentUserId.toLowerCase())) return;
-
+        const id = localStorage.getItem('unitech_user_id') || "";
+        if(!ALL_BYPASS.includes(id.toLowerCase())) return;
         try {
             const res = await fetch(scriptURL + "?action=getCount");
             const data = await res.json();
-            document.getElementById('attendance-counter').style.display = 'block';
-            document.getElementById('attendance-counter').innerText = `👥 Live Attendance: ${data.count} Staff Online`;
+            const counter = document.getElementById('attendance-counter');
+            counter.style.display = 'block';
+            counter.innerText = `👥 Live Attendance: ${data.count} Staff Online`;
         } catch (e) {}
     }
 
     async function resetUserDevice() {
         const target = prompt("Enter Username to Reset:");
-        if (target) {
-            await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_device", username: target.toLowerCase() }) });
-            showAlert("Reset successful.");
-        }
+        if (target) { await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_device", username: target.toLowerCase() })}); showAlert("Reset successful."); }
     }
 
-    async function clearAttendanceData() {
-        if (confirm("Clear attendance?")) {
-            await fetch(scriptURL, { method: 'POST', body: JSON.stringify({ action: "clear_attendance" }) });
-            showAlert("Cleared.");
-        }
-    }
-
-    function revealAdminButton() {
-        if (prompt("Admin Password:") === "Salako2020") {
-            document.getElementById('admin-download-btn').style.display = "block";
-        }
-    }
-
+    async function clearAttendanceData() { if (confirm("Clear attendance?")) { await fetch(scriptURL, { method: 'POST', body: JSON.stringify({ action: "clear_attendance" })}); showAlert("Cleared."); } }
+    function revealAdminButton() { if (prompt("Admin Password:") === "Salako2020") { document.getElementById('admin-download-btn').style.display = "block"; } }
     function logout() { localStorage.clear(); window.location.reload(); }
 </script>
 </body>
