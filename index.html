@@ -1,6 +1,5 @@
 <!DOCTYPE html>                                                                                
-  
-<html lang="en">
+ <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -417,48 +416,62 @@ function updateClock() {
     
     const statusBox = document.getElementById('time-status');
     const loginBtn = document.getElementById('login-btn');
+    const adminNote = document.getElementById('admin-note'); // Added reference
     const userIn = document.getElementById('username').value.trim().toLowerCase();
     const isFriday = (day === 5);
     
-    // Window: 8:55 AM to 2:00 PM
     const isAfterStart = (hrs > 8 || (hrs === 8 && mins >= 55));
     const isBeforeEnd = (hrs < 14); 
     const isMeetingWindow = isFriday && isAfterStart && isBeforeEnd;
 
-    // Handle Admin UI First
-    if (ALL_BYPASS.includes(userIn)) {
-        statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
-        statusBox.innerHTML = "👑 AUTHENTICATED ADMIN ACCESS";
+    // --- SUPER ADMIN LOGIC ---
+    if (userIn === SUPER_ADMIN) {
+        adminNote.style.display = 'block'; // THIS WAS MISSING
+        statusBox.style.background = "#fff9db"; 
+        statusBox.style.color = "#b8860b";
+        statusBox.innerHTML = "👑 AUTHENTICATED SUPER ADMIN";
         loginBtn.disabled = false;
         loginBtn.innerText = authMode === 'signup' ? "Create Admin Account" : "Enter Portal";
-        loginBtn.className = userIn === SUPER_ADMIN ? "super-admin-mode" : "admin-mode";
+        loginBtn.className = "super-admin-mode";
+        return;
+    } else {
+        adminNote.style.display = 'none'; // Hide for everyone else
+    }
+
+    // --- REGULAR ADMIN LOGIC ---
+    if (ADMIN_LIST.includes(userIn)) {
+        statusBox.style.background = "#eef6ff"; 
+        statusBox.style.color = "#0078d4";
+        statusBox.innerHTML = "🛡️ ADMIN ACCESS GRANTED";
+        loginBtn.disabled = false;
+        loginBtn.innerText = authMode === 'signup' ? "Create Admin Account" : "Enter Portal";
+        loginBtn.className = "admin-mode";
         return;
     }
 
     // Logic for Standard Users
     if (authMode === 'signup') {
-        // SIGNUP IS NEVER LOCKED
         statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
         statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
         loginBtn.disabled = false;
         loginBtn.className = "";
         loginBtn.innerText = "Create My Account";
     } else {
-        // LOGIN IS TIME-GATED
         if (isMeetingWindow) {
             statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
             statusBox.innerHTML = "✅ MEETING IS LIVE";
             loginBtn.disabled = false;
             loginBtn.innerText = "Join Meeting";
+            loginBtn.className = "";
         } else {
             statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
             statusBox.innerHTML = (isFriday && hrs >= 14) ? "🔒 MEETING CONCLUDED" : "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
             loginBtn.disabled = true;
             loginBtn.innerText = "Meeting Locked";
+            loginBtn.className = "";
         }
     }
 }
-
 async function handleAuth() {                                                                                
     const userIn = document.getElementById('username').value.trim().toLowerCase();
     const passIn = document.getElementById('staff-password').value;
@@ -685,6 +698,7 @@ async function handleAuth() {
 </script>
 </body>
 </html>
+
 
 
 
