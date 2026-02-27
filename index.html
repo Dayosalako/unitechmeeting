@@ -1,7 +1,4 @@
 <!DOCTYPE html>                                                            
-  
-  
-  
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -237,44 +234,48 @@
         return id;
     }
 
-    window.onload = () => {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=4');
+   window.onload = () => {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js?v=4');
+    }
+
+    const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+    if (isApp) {
+        document.getElementById('install-overlay').style.display = 'none';
+        
+        // --- AUTO-LOGIN LOGIC ---
+        const sessionActive = localStorage.getItem('unitech_session_active');
+        const savedName = localStorage.getItem('unitech_display_name');
+        
+        if (sessionActive === "true" && savedName) {
+            startMeeting(savedName);
+            return; // Exit here so updateClock doesn't interfere with the transition
         }
-
-        const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
-        if (isApp) {
-            document.getElementById('install-overlay').style.display = 'none';
-            const sessionActive = localStorage.getItem('unitech_session_active');
-            const savedName = localStorage.getItem('unitech_display_name');
-            if (sessionActive === "true" && savedName) {
-                startMeeting(savedName);
-            }
+    } else {
+        if (localStorage.getItem('app_already_installed') === 'true') {
+            document.body.innerHTML = `
+                <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px;">
+                    <img src="logo.png" width="100" style="margin-bottom:20px;">
+                    <h2>Portal is Ready</h2>
+                    <p>Please open the <b>UNGLOBAL</b> app from your home screen.</p>
+                    <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">Refresh</button>
+                </div>
+            `;
+            return;
         } else {
-            if (localStorage.getItem('app_already_installed') === 'true') {
-                document.body.innerHTML = `
-                    <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px;">
-                        <img src="logo.png" width="100" style="margin-bottom:20px;">
-                        <h2>Portal is Ready</h2>
-                        <p>Please open the <b>UNGLOBAL</b> app from your home screen.</p>
-                        <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">Refresh</button>
-                    </div>
-                `;
-                return;
-            } else {
-                document.getElementById('install-overlay').style.display = 'flex';
-                if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
-                    document.getElementById('ios-instructions').style.display = 'block';
-                    document.getElementById('install-btn-main').style.display = 'none';
-                }
+            document.getElementById('install-overlay').style.display = 'flex';
+            if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
+                document.getElementById('ios-instructions').style.display = 'block';
+                document.getElementById('install-btn-main').style.display = 'none';
             }
         }
+    }
 
-        updateClock();
-        setInterval(updateClock, 1000);
-    };
-    
+    updateClock();
+    setInterval(updateClock, 1000);
+};
+  
 function updateClock() {
     if (inMeeting) {
         // --- AUTO-KICK LOGIC (Inside the meeting check) ---
@@ -341,13 +342,13 @@ function updateClock() {
         
         if (isMeetingWindow) {
             statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-            statusBox.innerHTML = "✅ MEETING IS OPEN (Closes 2:00 PM)";
+            statusBox.innerHTML = "✅ MEETING IS OPEN";
             loginBtn.disabled = false; 
             loginBtn.innerText = authMode === 'signup' ? "Create My Account" : "Join Meeting";
         } else {
             statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
             if (isFriday && hrs >= 14) {
-                statusBox.innerHTML = "🔒 MEETING CLOSED (Concluded at 2:00 PM)";
+                statusBox.innerHTML = "🔒 MEETING CLOSED (Meeting Concluded)";
             } else {
                 statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
             }
@@ -374,47 +375,61 @@ function updateClock() {
         updateClock();
     }
 
-    async function handleAuth() {
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
-        const passIn = document.getElementById('staff-password').value;
-        const nameIn = document.getElementById('display_name').value.trim();
-        const deviceId = getDeviceId();
-        const btn = document.getElementById('login-btn');
+    async                    
+  async function handleAuth() {
+    const userIn = document.getElementById('username').value.trim().toLowerCase();
+    const passIn = document.getElementById('staff-password').value;
+    const nameIn = document.getElementById('display_name').value.trim();
+    const deviceId = getDeviceId();
+    const btn = document.getElementById('login-btn');
 
-        if (authMode === 'signup' && (!userIn || !passIn || !nameIn)) {
-            alert("Please fill in all fields."); return;
-        }
-
-        btn.innerText = "Processing..."; btn.disabled = true;
-
-        try {
-            const response = await fetch(authURL, { 
-                method: 'POST', 
-                body: JSON.stringify({ 
-                    action: authMode === 'signup' ? "signup" : "login_check", 
-                    username: userIn, password: passIn, displayName: nameIn, deviceId: deviceId 
-                }) 
-            });
-            const result = await response.json();
-            
-            if (result.status === "success") {
-                if (authMode === 'signup') {
-                    alert("Account Created! You can now Login.");
-                    toggleAuthMode('login');
-                } else {
-                    localStorage.setItem('unitech_user_id', userIn);
-                    localStorage.setItem('unitech_display_name', result.displayName);
-                    localStorage.setItem('unitech_session_active', "true");
-                    startMeeting(result.displayName);
-                }
-            } else {
-                alert(result.message); btn.disabled = false; updateClock();
-            }
-        } catch (e) {
-            alert("Connection error."); btn.disabled = false;
-        }
+    if (authMode === 'signup' && (!userIn || !passIn || !nameIn)) {
+        alert("Please fill in all fields."); 
+        return;
     }
 
+    btn.innerText = "Processing..."; 
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(authURL, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                action: authMode === 'signup' ? "signup" : "login_check", 
+                username: userIn, 
+                password: passIn, 
+                displayName: nameIn, 
+                deviceId: deviceId 
+            }) 
+        });
+        const result = await response.json();
+        
+        if (result.status === "success") {
+            if (authMode === 'signup') {
+                alert("Account Created! You can now Login.");
+                toggleAuthMode('login');
+                btn.innerText = "Join Meeting"; // Reset button text
+                btn.disabled = false;
+            } else {
+                // --- SAVE DATA PERMANENTLY ---
+                localStorage.setItem('unitech_user_id', userIn);
+                localStorage.setItem('unitech_display_name', result.displayName);
+                localStorage.setItem('unitech_session_active', "true"); // This enables the auto-login
+                
+                startMeeting(result.displayName);
+            }
+        } else {
+            alert(result.message); 
+            btn.disabled = false; 
+            btn.innerText = (authMode === 'signup' ? "Create My Account" : "Join Meeting");
+            updateClock();
+        }
+    } catch (e) {
+        alert("Connection error."); 
+        btn.disabled = false;
+        btn.innerText = "Join Meeting";
+    }
+}  
     async function startMeeting(displayName) {
         if (api) api.dispose(); 
         inMeeting = true;
@@ -499,4 +514,5 @@ function updateClock() {
 </script>
 </body>
 </html>
+
 
