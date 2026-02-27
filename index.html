@@ -175,6 +175,12 @@
 
         @keyframes slideDown { from { top: -100px; opacity: 0; } to { top: 25px; opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        #custom-alert.admin-alert {
+    background: #fff9db;
+    border-left: 6px solid #b8860b;
+    color: #856404;
+}
     </style>
 </head>
 <body>
@@ -384,33 +390,63 @@
     };
 
     function updateClock() {
-        if (inMeeting) return;
-        const now = new Date(); const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-        const day = nigeria.getDay(), hrs = nigeria.getHours(), mins = nigeria.getMinutes();
-        const statusBox = document.getElementById('time-status'), loginBtn = document.getElementById('login-btn');
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
-        const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
+    if (inMeeting) return;
+    const now = new Date(); 
+    const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+    const day = nigeria.getDay(), hrs = nigeria.getHours(), mins = nigeria.getMinutes();
+    const statusBox = document.getElementById('time-status'), loginBtn = document.getElementById('login-btn');
+    const userIn = document.getElementById('username').value.trim().toLowerCase();
+    const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
+    
+    // --- SUPER ADMIN ALERT LOGIC ---
+    if (userIn === SUPER_ADMIN && !window.adminAlertShown) {
+        showAlert("👑 Super Admin Identity Verified. System Controls Enabled.");
+        window.adminAlertShown = true; 
+    } else if (userIn !== SUPER_ADMIN) {
+        window.adminAlertShown = false; 
+    }
+    // -------------------------------
 
-        statusBox.classList.remove('super-admin-status');
-        loginBtn.classList.remove('super-admin-btn');
+    // Reset UI states before checking user
+    statusBox.classList.remove('super-admin-status');
+    loginBtn.classList.remove('super-admin-btn');
+    document.getElementById('admin-note').style.display = 'none';
+    document.getElementById('attendance-counter').style.display = 'none';
 
-        if (userIn === SUPER_ADMIN) {
-            statusBox.classList.add('super-admin-status');
-            statusBox.innerHTML = "👑 SUPER ADMIN ACCESS GRANTED";
-            loginBtn.classList.add('super-admin-btn');
-            loginBtn.disabled = false; loginBtn.innerText = "Enter Portal";
-        } else if (ADMIN_LIST.includes(userIn)) {
-            statusBox.style.background = "#fff5f5"; statusBox.style.color = "var(--warning)";
-            statusBox.innerHTML = "🛡️ ADMIN ACCESS DETECTED";
-            loginBtn.disabled = false; loginBtn.innerText = "Enter Portal";
-        } else if (authMode === 'signup') {
-            statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
-            loginBtn.disabled = false; loginBtn.innerText = "Create My Account";
-        } else {
-            if (isMeetingWindow) { statusBox.style.background = "#f0fff4"; statusBox.innerHTML = "✅ MEETING IS LIVE"; loginBtn.disabled = false; loginBtn.innerText = "Join Meeting"; }
-            else { statusBox.style.background = "#fff5f5"; statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)"; loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked"; }
+    if (userIn === SUPER_ADMIN) {
+        statusBox.classList.add('super-admin-status');
+        statusBox.innerHTML = "👑 SUPER ADMIN ACCESS GRANTED";
+        loginBtn.classList.add('super-admin-btn');
+        loginBtn.disabled = false; 
+        loginBtn.innerText = "Enter Portal";
+        document.getElementById('admin-note').style.display = 'block'; // Show Checklist
+        document.getElementById('attendance-counter').style.display = 'block'; // Show Counter
+    } else if (ADMIN_LIST.includes(userIn)) {
+        statusBox.style.background = "#fff5f5"; 
+        statusBox.style.color = "var(--warning)";
+        statusBox.innerHTML = "🛡️ ADMIN ACCESS DETECTED";
+        loginBtn.disabled = false; 
+        loginBtn.innerText = "Enter Portal";
+        document.getElementById('attendance-counter').style.display = 'block'; // Admins see counter
+    } else if (authMode === 'signup') {
+        statusBox.style.background = "#eef6ff"; 
+        statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
+        loginBtn.disabled = false; 
+        loginBtn.innerText = "Create My Account";
+    } else {
+        if (isMeetingWindow) { 
+            statusBox.style.background = "#f0fff4"; 
+            statusBox.innerHTML = "✅ MEETING IS LIVE"; 
+            loginBtn.disabled = false; 
+            loginBtn.innerText = "Join Meeting"; 
+        } else { 
+            statusBox.style.background = "#fff5f5"; 
+            statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)"; 
+            loginBtn.disabled = true; 
+            loginBtn.innerText = "Meeting Locked"; 
         }
     }
+}
 
     async function handleAuth() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
@@ -475,3 +511,4 @@
 </script>
 </body>
 </html>
+
