@@ -124,10 +124,73 @@
             user-select: none;
             z-index: 100;
         }
+        /* Custom Professional Alert Toast */
+#custom-alert {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 15px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 10001;
+    border-left: 5px solid var(--navy);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { top: -100px; opacity: 0; }
+    to { top: 20px; opacity: 1; }
+}
+
+/* Enhancing the Install Overlay */
+#install-overlay {
+    background: linear-gradient(180deg, rgba(0, 31, 63, 0.95) 0%, rgba(0, 10, 20, 0.98) 100%) !important;
+    backdrop-filter: blur(10px);
+}
+
+#install-btn-main {
+    background: var(--success);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+    width: 250px;
+    margin-top: 20px;
+}
+        /* Professional Toast Notification */
+#custom-alert {
+    display: none;
+    position: fixed;
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 16px 28px;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    z-index: 20000;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--navy);
+    border-left: 6px solid var(--accent);
+    animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideDown {
+    from { top: -100px; opacity: 0; }
+    to { top: 25px; opacity: 1; }
+}
+
+/* Glassmorphism for Overlays */
+#install-overlay {
+    background: rgba(0, 31, 63, 0.85) !important;
+    backdrop-filter: blur(15px); /* Professional blur effect */
+    -webkit-backdrop-filter: blur(15px);
+}
     </style>
 </head>
 <body>
-
+<div id="custom-alert"></div>
 <div id="install-overlay">
     <span class="close-x" onclick="document.getElementById('install-overlay').style.display='none'">&times;</span>
     <img src="logo.png" style="max-width: 120px; margin-bottom: 20px;">
@@ -276,30 +339,33 @@
     setInterval(updateClock, 1000);
 };
   
+// --- New Professional Alert Helper ---
+function showAlert(message) {
+    const alertBox = document.getElementById('custom-alert');
+    alertBox.innerText = message;
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+}
+
 function updateClock() {
     if (inMeeting) {
-        // --- AUTO-KICK LOGIC (Inside the meeting check) ---
         const now = new Date();
         const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const day = nigeria.getDay(); 
         const hrs = nigeria.getHours();
-        
         const isFriday = (day === 5);
         const userId = localStorage.getItem('unitech_user_id');
 
-        // If it's 2 PM or later on Friday and NOT an admin, kick them out
         if (isFriday && hrs >= 14 && !ALL_BYPASS.includes(userId)) {
             if (api) {
                 api.executeCommand('hangup'); 
-                alert("The meeting has officially concluded. You have been disconnected.");
-                inMeeting = false;
-                location.reload();
+                showAlert("Meeting concluded. Disconnecting...");
+                setTimeout(() => { location.reload(); }, 2000);
             }
         }
-        return; // Don't run the login page logic if we are in a meeting
+        return;
     }
 
-    // --- LOGIN PAGE LOGIC ---
     const now = new Date();
     const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
     const day = nigeria.getDay(); 
@@ -308,64 +374,93 @@ function updateClock() {
     
     const statusBox = document.getElementById('time-status');
     const loginBtn = document.getElementById('login-btn');
-    const adminNote = document.getElementById('admin-note');
     const userIn = document.getElementById('username').value.trim().toLowerCase();
-
     const isFriday = (day === 5);
     
-    // Logic: Starts at 8:55 AM and ends exactly at 14:00 (2:00 PM)
+    // Window: 8:55 AM to 2:00 PM
     const isAfterStart = (hrs > 8 || (hrs === 8 && mins >= 55));
     const isBeforeEnd = (hrs < 14); 
     const isMeetingWindow = isFriday && isAfterStart && isBeforeEnd;
 
-    if (userIn === SUPER_ADMIN) {
+    // Handle Admin UI First
+    if (ALL_BYPASS.includes(userIn)) {
         statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
-        statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
-        loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter as Super Admin";
-        loginBtn.className = "super-admin-mode";
-        adminNote.style.display = "block";
-        document.getElementById('attendance-counter').style.display = "block";
-        fetchAttendance();
-    } 
-    else if (ADMIN_LIST.includes(userIn)) {
+        statusBox.innerHTML = "👑 AUTHENTICATED ADMIN ACCESS";
+        loginBtn.disabled = false;
+        loginBtn.innerText = authMode === 'signup' ? "Create Admin Account" : "Enter Portal";
+        loginBtn.className = userIn === SUPER_ADMIN ? "super-admin-mode" : "admin-mode";
+        return;
+    }
+
+    // Logic for Standard Users
+    if (authMode === 'signup') {
+        // SIGNUP IS NEVER LOCKED
         statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-        statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
-        loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter Admin Meeting";
-        loginBtn.className = "admin-mode";
-        adminNote.style.display = "none"; 
-        document.getElementById('attendance-counter').style.display = "block";
-        fetchAttendance();
-    } 
-    else {
+        statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
+        loginBtn.disabled = false;
         loginBtn.className = "";
-        adminNote.style.display = "none";
-        
-        // If user is signing up, we ALWAYS let them click the button
-        if (authMode === 'signup') {
-            statusBox.style.background = "#ebf8ff"; statusBox.style.color = "#2b6cb0";
-            statusBox.innerHTML = "📝 ACCOUNT REGISTRATION MODE";
-            loginBtn.disabled = false; 
-            loginBtn.innerText = "Create My Account";
-        } 
-        // If logging in, apply the Friday time-gate
-        else {
-            if (isMeetingWindow) {
-                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-                statusBox.innerHTML = "✅ MEETING IS OPEN";
-                loginBtn.disabled = false; 
-                loginBtn.innerText = "Join Meeting";
-            } else {
-                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-                if (isFriday && hrs >= 14) {
-                    statusBox.innerHTML = "🔒 MEETING CLOSED (Meeting Concluded)";
-                } else {
-                    statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
-                }
-                loginBtn.disabled = true; 
-                loginBtn.innerText = "Meeting Locked";
-            }
+        loginBtn.innerText = "Create My Account";
+    } else {
+        // LOGIN IS TIME-GATED
+        if (isMeetingWindow) {
+            statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
+            statusBox.innerHTML = "✅ MEETING IS LIVE";
+            loginBtn.disabled = false;
+            loginBtn.innerText = "Join Meeting";
+        } else {
+            statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
+            statusBox.innerHTML = (isFriday && hrs >= 14) ? "🔒 MEETING CONCLUDED" : "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+            loginBtn.disabled = true;
+            loginBtn.innerText = "Meeting Locked";
         }
     }
+}
+
+async function handleAuth() {
+    const userIn = document.getElementById('username').value.trim().toLowerCase();
+    const passIn = document.getElementById('staff-password').value;
+    const nameIn = document.getElementById('display_name').value.trim();
+    const deviceId = getDeviceId();
+    const btn = document.getElementById('login-btn');
+
+    if (authMode === 'signup' && (!userIn || !passIn || !nameIn)) {
+        showAlert("Please fill in all fields."); return;
+    }
+
+    btn.innerText = "Verifying..."; btn.disabled = true;
+
+    try {
+        const response = await fetch(authURL, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                action: authMode === 'signup' ? "signup" : "login_check", 
+                username: userIn, password: passIn, displayName: nameIn, deviceId: deviceId 
+            }) 
+        });
+        const result = await response.json();
+        
+        if (result.status === "success") {
+            if (authMode === 'signup') {
+                showAlert("Account Created! You can now Login.");
+                toggleAuthMode('login');
+                btn.innerText = "Join Meeting"; btn.disabled = false;
+            } else {
+                localStorage.setItem('unitech_user_id', userIn);
+                localStorage.setItem('unitech_display_name', result.displayName);
+                localStorage.setItem('unitech_session_active', "true");
+                showAlert("Access Granted. Connecting...");
+                setTimeout(() => { startMeeting(result.displayName); }, 1000);
+            }
+        } else {
+            showAlert(result.message);
+            btn.disabled = false;
+            updateClock();
+        }
+    } catch (e) {
+        showAlert("Connection error. Try again.");
+        btn.disabled = false;
+    }
+}
     function toggleAuthMode(mode) {
         authMode = mode;
         const nameField = document.getElementById('display_name');
@@ -523,6 +618,7 @@ function updateClock() {
 </script>
 </body>
 </html>
+
 
 
 
