@@ -55,8 +55,7 @@
         }
 
         #attendance-counter {
-            display: none; /* Hidden by default */
-            font-size: 12px; font-weight: 700; padding: 10px;
+            display: none; font-size: 12px; font-weight: 700; padding: 10px;
             border-radius: 8px; margin-bottom: 15px;
             background: #ebf8ff; color: #2b6cb0;
             border: 1px solid #bee3f8;
@@ -156,6 +155,11 @@
         @keyframes slideUp {
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
+        }
+
+        #recovery-modal input {
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
         }
 
         .spinner {
@@ -387,6 +391,9 @@
                 const isMeetingWindow = (nigeria.getDay() === 5) && (nigeria.getHours() > 8 || (nigeria.getHours() === 8 && nigeria.getMinutes() >= 55)) && (nigeria.getHours() < 14);
 
                 if (isMeetingWindow || ALL_BYPASS.includes(userId)) {
+                    // Re-show admin specific elements if logged in as admin
+                    if (userId === SUPER_ADMIN) document.getElementById('admin-note').style.display = 'block';
+                    if (ALL_BYPASS.includes(userId)) document.getElementById('attendance-counter').style.display = 'block';
                     startMeeting(savedName);
                 }
             }
@@ -409,52 +416,22 @@
         const day = nigeria.getDay(), hrs = nigeria.getHours(), mins = nigeria.getMinutes();
         const statusBox = document.getElementById('time-status');
         const loginBtn = document.getElementById('login-btn');
-        const adminNote = document.getElementById('admin-note');
-        const attCounter = document.getElementById('attendance-counter');
-        
-        // Check input field or current stored session
-        const currentInput = document.getElementById('username').value.trim().toLowerCase();
-        const savedUser = localStorage.getItem('unitech_user_id') || "";
-        const userToCheck = currentInput || savedUser;
+        const userIn = document.getElementById('username').value.trim().toLowerCase();
         
         const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
 
-        // Logic for Super Admin
-        if (userToCheck === SUPER_ADMIN) {
-            adminNote.style.display = 'block'; // Ensure Checklist shows
-            attCounter.style.display = 'block'; // Ensure Attendance shows
-            statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
-            statusBox.innerHTML = "👑 SUPER ADMIN ACCESS GRANTED";
-            loginBtn.disabled = false; loginBtn.className = "super-admin-mode";
-            loginBtn.innerText = "Enter Portal";
-        } 
-        // Logic for Admins
-        else if (ADMIN_LIST.includes(userToCheck)) {
-            adminNote.style.display = 'none';
-            attCounter.style.display = 'block'; // Ensure Attendance shows
-            statusBox.style.background = "#eef6ff"; statusBox.style.color = "var(--accent)";
-            statusBox.innerHTML = "🛡️ ADMIN ACCESS GRANTED";
-            loginBtn.disabled = false; loginBtn.className = "admin-mode";
-            loginBtn.innerText = "Enter Portal";
-        } 
-        // Normal Staff
-        else if (authMode === 'signup') {
-            adminNote.style.display = 'none';
-            attCounter.style.display = 'none';
-            statusBox.style.background = "#eef6ff"; statusBox.style.color = "var(--navy)";
-            statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
+        if (ALL_BYPASS.includes(userIn)) {
+            statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "🛡️ ADMIN ACCESS DETECTED";
+            loginBtn.disabled = false; loginBtn.innerText = "Enter Portal";
+        } else if (authMode === 'signup') {
+            statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
             loginBtn.disabled = false; loginBtn.innerText = "Create My Account";
         } else {
-            adminNote.style.display = 'none';
-            attCounter.style.display = 'none'; // Keep hidden for staff
-            loginBtn.className = "";
             if (isMeetingWindow) {
-                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-                statusBox.innerHTML = "✅ MEETING IS LIVE";
+                statusBox.style.background = "#f0fff4"; statusBox.innerHTML = "✅ MEETING IS LIVE";
                 loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
             } else {
-                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-                statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)";
+                statusBox.style.background = "#fff5f5"; statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)";
                 loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
             }
         }
@@ -519,6 +496,11 @@
                     localStorage.setItem('unitech_user_id', userIn);
                     localStorage.setItem('unitech_display_name', result.displayName);
                     localStorage.setItem('unitech_session_active', "true");
+                    
+                    // SECURITY FIX: Show elements ONLY after successful login
+                    if (userIn === SUPER_ADMIN) document.getElementById('admin-note').style.display = 'block';
+                    if (ALL_BYPASS.includes(userIn)) document.getElementById('attendance-counter').style.display = 'block';
+                    
                     startMeeting(result.displayName);
                 }
             } else {
@@ -561,16 +543,14 @@
     }
 
     async function fetchAttendance() {
-        const userId = localStorage.getItem('unitech_user_id') || document.getElementById('username').value.trim().toLowerCase();
-        // Prevent normal staff from ever calling the attendance script
-        if (!ALL_BYPASS.includes(userId)) return;
+        const currentUserId = localStorage.getItem('unitech_user_id') || "";
+        if(!ALL_BYPASS.includes(currentUserId.toLowerCase())) return;
 
         try {
             const res = await fetch(scriptURL + "?action=getCount");
             const data = await res.json();
-            const counter = document.getElementById('attendance-counter');
-            counter.style.display = 'block';
-            counter.innerText = `👥 Live Attendance: ${data.count} Staff Online`;
+            document.getElementById('attendance-counter').style.display = 'block';
+            document.getElementById('attendance-counter').innerText = `👥 Live Attendance: ${data.count} Staff Online`;
         } catch (e) {}
     }
 
