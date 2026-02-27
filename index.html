@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+<!DOCTYPE html>                                                            
+  
+  
+  
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -271,56 +274,88 @@
         updateClock();
         setInterval(updateClock, 1000);
     };
-
-    function updateClock() {
-        if (inMeeting) return;
+    
+function updateClock() {
+    if (inMeeting) {
+        // --- AUTO-KICK LOGIC (Inside the meeting check) ---
         const now = new Date();
         const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const day = nigeria.getDay(); 
         const hrs = nigeria.getHours();
-        const mins = nigeria.getMinutes();
         
-        const statusBox = document.getElementById('time-status');
-        const loginBtn = document.getElementById('login-btn');
-        const adminNote = document.getElementById('admin-note');
-        const userIn = document.getElementById('username').value.trim().toLowerCase();
-
         const isFriday = (day === 5);
-        const isTime = (hrs > 8 || (hrs === 8 && mins >= 55));
+        const userId = localStorage.getItem('unitech_user_id');
 
-        if (userIn === SUPER_ADMIN) {
-            statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
-            statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
-            loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter as Super Admin";
-            loginBtn.className = "super-admin-mode";
-            adminNote.style.display = "block";
-            document.getElementById('attendance-counter').style.display = "block";
-            fetchAttendance();
-        } 
-        else if (ADMIN_LIST.includes(userIn)) {
-            statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-            statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
-            loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter Admin Meeting";
-            loginBtn.className = "admin-mode";
-            adminNote.style.display = "none"; 
-            document.getElementById('attendance-counter').style.display = "block";
-            fetchAttendance();
-        } 
-        else {
-            loginBtn.className = "";
-            adminNote.style.display = "none";
-            if (isFriday && isTime) {
-                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-                statusBox.innerHTML = "✅ MEETING IS OPEN";
-                loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create My Account" : "Join Meeting";
-            } else {
-                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-                statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
-                loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
+        // If it's 2 PM or later on Friday and NOT an admin, kick them out
+        if (isFriday && hrs >= 14 && !ALL_BYPASS.includes(userId)) {
+            if (api) {
+                api.executeCommand('hangup'); 
+                alert("The meeting has officially concluded. You have been disconnected.");
+                inMeeting = false;
+                location.reload();
             }
         }
+        return; // Don't run the login page logic if we are in a meeting
     }
 
+    // --- LOGIN PAGE LOGIC ---
+    const now = new Date();
+    const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+    const day = nigeria.getDay(); 
+    const hrs = nigeria.getHours();
+    const mins = nigeria.getMinutes();
+    
+    const statusBox = document.getElementById('time-status');
+    const loginBtn = document.getElementById('login-btn');
+    const adminNote = document.getElementById('admin-note');
+    const userIn = document.getElementById('username').value.trim().toLowerCase();
+
+    const isFriday = (day === 5);
+    
+    // Logic: Starts at 8:55 AM and ends exactly at 14:00 (2:00 PM)
+    const isAfterStart = (hrs > 8 || (hrs === 8 && mins >= 55));
+    const isBeforeEnd = (hrs < 14); 
+    const isMeetingWindow = isFriday && isAfterStart && isBeforeEnd;
+
+    if (userIn === SUPER_ADMIN) {
+        statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
+        statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
+        loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter as Super Admin";
+        loginBtn.className = "super-admin-mode";
+        adminNote.style.display = "block";
+        document.getElementById('attendance-counter').style.display = "block";
+        fetchAttendance();
+    } 
+    else if (ADMIN_LIST.includes(userIn)) {
+        statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
+        statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
+        loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter Admin Meeting";
+        loginBtn.className = "admin-mode";
+        adminNote.style.display = "none"; 
+        document.getElementById('attendance-counter').style.display = "block";
+        fetchAttendance();
+    } 
+    else {
+        loginBtn.className = "";
+        adminNote.style.display = "none";
+        
+        if (isMeetingWindow) {
+            statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
+            statusBox.innerHTML = "✅ MEETING IS OPEN (Closes 2:00 PM)";
+            loginBtn.disabled = false; 
+            loginBtn.innerText = authMode === 'signup' ? "Create My Account" : "Join Meeting";
+        } else {
+            statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
+            if (isFriday && hrs >= 14) {
+                statusBox.innerHTML = "🔒 MEETING CLOSED (Concluded at 2:00 PM)";
+            } else {
+                statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+            }
+            loginBtn.disabled = true; 
+            loginBtn.innerText = "Meeting Locked";
+        }
+    }
+}
     function toggleAuthMode(mode) {
         authMode = mode;
         const nameField = document.getElementById('display_name');
@@ -464,3 +499,4 @@
 </script>
 </body>
 </html>
+
