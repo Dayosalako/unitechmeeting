@@ -340,23 +340,32 @@ function updateClock() {
         loginBtn.className = "";
         adminNote.style.display = "none";
         
-        if (isMeetingWindow) {
-            statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-            statusBox.innerHTML = "✅ MEETING IS OPEN";
+        // If user is signing up, we ALWAYS let them click the button
+        if (authMode === 'signup') {
+            statusBox.style.background = "#ebf8ff"; statusBox.style.color = "#2b6cb0";
+            statusBox.innerHTML = "📝 ACCOUNT REGISTRATION MODE";
             loginBtn.disabled = false; 
-            loginBtn.innerText = authMode === 'signup' ? "Create My Account" : "Join Meeting";
-        } else {
-            statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-            if (isFriday && hrs >= 14) {
-                statusBox.innerHTML = "🔒 MEETING CLOSED (Meeting Concluded)";
+            loginBtn.innerText = "Create My Account";
+        } 
+        // If logging in, apply the Friday time-gate
+        else {
+            if (isMeetingWindow) {
+                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
+                statusBox.innerHTML = "✅ MEETING IS OPEN";
+                loginBtn.disabled = false; 
+                loginBtn.innerText = "Join Meeting";
             } else {
-                statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
+                if (isFriday && hrs >= 14) {
+                    statusBox.innerHTML = "🔒 MEETING CLOSED (Meeting Concluded)";
+                } else {
+                    statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+                }
+                loginBtn.disabled = true; 
+                loginBtn.innerText = "Meeting Locked";
             }
-            loginBtn.disabled = true; 
-            loginBtn.innerText = "Meeting Locked";
         }
     }
-}
     function toggleAuthMode(mode) {
         authMode = mode;
         const nameField = document.getElementById('display_name');
@@ -514,5 +523,6 @@ function updateClock() {
 </script>
 </body>
 </html>
+
 
 
