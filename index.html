@@ -21,6 +21,7 @@
             --text-dark: #333;
             --success: #28a745;
             --warning: #d9534f;
+            --gold: linear-gradient(to right, #b8860b, #ffd700);
         }
 
         body, html {
@@ -52,9 +53,17 @@
             border-radius: 8px; margin-bottom: 20px;
             background: #fff5f5; color: var(--warning);
             border: 1px solid #feb2b2;
+            transition: all 0.3s ease;
         }
 
-        /* ATTENDANCE COUNTER WITH SLIDE-DOWN ANIMATION */
+        /* SUPER ADMIN SPECIFIC CLASS */
+        .super-admin-status {
+            background: var(--gold) !important;
+            color: #000 !important;
+            border: 1px solid #b8860b !important;
+            font-weight: bold !important;
+        }
+
         #attendance-counter {
             display: none; font-size: 12px; font-weight: 700; padding: 10px;
             border-radius: 8px; margin-bottom: 15px;
@@ -84,6 +93,12 @@
         button:active { transform: scale(0.97); }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
 
+        /* SUPER ADMIN BUTTON CLASS */
+        .super-admin-btn {
+            background: var(--gold) !important;
+            color: #000 !important;
+        }
+
         .btn-loading { color: transparent !important; pointer-events: none; }
         .btn-loading::after {
             content: ""; position: absolute; width: 22px; height: 22px;
@@ -94,9 +109,6 @@
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .admin-mode { background-color: var(--accent) !important; }
-        .super-admin-mode { background: linear-gradient(to right, #b8860b, #ffd700) !important; color: #000 !important; font-weight: bold; }
 
         #session-header {
             display: none; background: white; width: 100%;
@@ -260,12 +272,7 @@
         setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
     }
 
-    function forgotPassword() {
-        document.getElementById('recovery-modal').style.display = 'flex';
-        document.getElementById('recovery-step-1').style.display = 'block';
-        document.getElementById('recovery-step-2').style.display = 'none';
-    }
-
+    function forgotPassword() { document.getElementById('recovery-modal').style.display = 'flex'; }
     function closeRecoveryModal() { document.getElementById('recovery-modal').style.display = 'none'; }
     function showRecoveryStep2() { 
         if(!document.getElementById('recover-username').value.trim()) { showAlert("Enter username."); return; }
@@ -336,8 +343,18 @@
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
 
-        if (ALL_BYPASS.includes(userIn)) {
-            statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "🛡️ ADMIN ACCESS DETECTED";
+        // RESET CLASSES
+        statusBox.classList.remove('super-admin-status');
+        loginBtn.classList.remove('super-admin-btn');
+
+        if (userIn === SUPER_ADMIN) {
+            statusBox.classList.add('super-admin-status');
+            statusBox.innerHTML = "👑 SUPER ADMIN ACCESS GRANTED";
+            loginBtn.classList.add('super-admin-btn');
+            loginBtn.disabled = false; loginBtn.innerText = "Enter Portal";
+        } else if (ADMIN_LIST.includes(userIn)) {
+            statusBox.style.background = "#fff5f5"; statusBox.style.color = "var(--warning)";
+            statusBox.innerHTML = "🛡️ ADMIN ACCESS DETECTED";
             loginBtn.disabled = false; loginBtn.innerText = "Enter Portal";
         } else if (authMode === 'signup') {
             statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
