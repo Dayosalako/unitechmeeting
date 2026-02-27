@@ -85,21 +85,17 @@
 
         #session-header h3 { margin: 0; color: var(--navy); font-size: 13px; text-transform: uppercase; }
 
-        /* Standard Frame Layout (Not Overlaid) */
         #meeting-frame { 
             display: none; width: 100vw; background: black; 
         }
 
         .footer-credit { position: absolute; bottom: 20px; color: rgba(255,255,255,0.4); font-size: 11px; }
-        #admin-download-btn { display: none; margin-top: 20px; background-color: var(--success); }
 
         #install-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 31, 63, 0.98); z-index: 10000;
             flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center;
         }
-        #install-overlay h2 { margin-bottom: 10px; font-size: 20px; }
-        #install-btn-main { background: var(--success); width: auto; padding: 15px 40px; margin-top: 20px; }
         
         .close-x {
             position: absolute; top: 20px; right: 30px; font-size: 35px;
@@ -119,7 +115,6 @@
     <img src="logo.png" style="max-width: 120px; margin-bottom: 20px;">
     <h2>UNGLOBAL Weekly Meeting</h2>
     <p>Install the App to enable background audio & microphone.</p>
-    <p>Installed before? You can close this and open from your Homescreen.</p>                                        
     <button id="install-btn-main">Install App Now</button>
     <div id="ios-instructions">
         <h4 style="margin:0">iPhone/iPad Users:</h4>
@@ -137,7 +132,7 @@
 
 <div id="setup-container">
     <img src="logo.png" alt="Unitech Logo" class="logo" onerror="this.style.display='none'">
-    <h1 id="portal-title">UNGLOBAL WEEKLY MEETING</h1>
+    <h1>UNGLOBAL WEEKLY MEETING</h1>
     
     <div id="time-status">Syncing with Nigeria Time...</div>
     <div id="attendance-counter">👥 Live Attendance: Fetching...</div>
@@ -149,13 +144,20 @@
         • <span onclick="clearAttendanceData()" style="text-decoration: underline; cursor: pointer; color: #d9534f;">Clear Attendance List</span>
     </div>
 
-    <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; text-align: left; border: 1px solid #c6f6d5;">
-        🤖 <strong>Management:</strong> Welcome. Keep improving your skills.
+    <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee;">
+        <div id="tab-login" onclick="toggleAuthMode('login')" style="flex:1; padding:10px; cursor:pointer; font-weight:700; color:var(--navy); border-bottom: 3px solid var(--navy);">LOGIN</div>
+        <div id="tab-signup" onclick="toggleAuthMode('signup')" style="flex:1; padding:10px; cursor:pointer; font-weight:700; color:#999;">SIGN UP</div>
     </div>
 
     <input type="text" id="username" placeholder="Username" oninput="updateClock()">
+    <input type="text" id="display_name" placeholder="Your Full Name" style="display:none;">
     <input type="password" id="staff-password" placeholder="Password">
-    <button id="login-btn" onclick="handleLogin()" disabled>Locked</button>
+    
+    <button id="login-btn" onclick="handleAuth()" disabled>Locked</button>
+
+    <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 11px; text-align: left; border: 1px solid #c6f6d5;">
+        🤖 <strong>System:</strong> New staff must "Sign Up" first.
+    </div>
 </div>
 
 <div id="meeting-frame"></div>
@@ -165,7 +167,7 @@
     <h2>Meeting Concluded</h2>
     <p>Attendance logged. Credentials saved.</p>
     <button onclick="location.reload()" style="background: var(--success); margin-bottom: 10px;">🔄 Quick Reconnect</button>
-    <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')">📂 Open Otter.ai</button>
+    <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')" style="background: var(--success); display:none;">📂 Open Otter.ai</button>
     <br><br>
     <button onclick="logout()" style="background: #666; width: auto; padding: 10px 20px;">Logout & Clear Storage</button>
 </div>
@@ -185,6 +187,7 @@
     let inMeeting = false;
     let wakeLock = null;
     let deferredPrompt;
+    let authMode = 'login';
 
     function getDeviceId() {
         let id = localStorage.getItem('unitech_device_id');
@@ -212,10 +215,10 @@
         } else {
             if (localStorage.getItem('app_already_installed') === 'true') {
                 document.body.innerHTML = `
-                    <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px; font-family:sans-serif;">
+                    <div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px;">
                         <img src="logo.png" width="100" style="margin-bottom:20px;">
                         <h2>Portal is Ready</h2>
-                        <p>You have already installed the app.<br>Please close this browser and open the <b>UNGLOBAL</b> app from your home screen.</p>
+                        <p>Please open the <b>UNGLOBAL</b> app from your home screen.</p>
                         <button onclick="location.reload()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px;">Refresh</button>
                     </div>
                 `;
@@ -252,7 +255,7 @@
         if (userIn === SUPER_ADMIN) {
             statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
             statusBox.innerHTML = "👑 SUPER ADMIN ACCESS: ONLINE";
-            loginBtn.disabled = false; loginBtn.innerText = "Enter as Super Admin";
+            loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter as Super Admin";
             loginBtn.className = "super-admin-mode";
             adminNote.style.display = "block";
             document.getElementById('attendance-counter').style.display = "block";
@@ -261,7 +264,7 @@
         else if (ADMIN_LIST.includes(userIn)) {
             statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
             statusBox.innerHTML = "💎 ADMIN ACCESS ACTIVE";
-            loginBtn.disabled = false; loginBtn.innerText = "Enter Admin Meeting";
+            loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create Admin" : "Enter Admin Meeting";
             loginBtn.className = "admin-mode";
             adminNote.style.display = "none"; 
             document.getElementById('attendance-counter').style.display = "block";
@@ -273,7 +276,7 @@
             if (isFriday && isTime) {
                 statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
                 statusBox.innerHTML = "✅ MEETING IS OPEN";
-                loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
+                loginBtn.disabled = false; loginBtn.innerText = authMode === 'signup' ? "Create My Account" : "Join Meeting";
             } else {
                 statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
                 statusBox.innerHTML = "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
@@ -282,32 +285,62 @@
         }
     }
 
-    async function handleLogin() {
+    function toggleAuthMode(mode) {
+        authMode = mode;
+        const nameField = document.getElementById('display_name');
+        const tabL = document.getElementById('tab-login');
+        const tabS = document.getElementById('tab-signup');
+
+        if (mode === 'signup') {
+            nameField.style.display = 'block';
+            tabS.style.color = "var(--navy)"; tabS.style.borderBottom = "3px solid var(--navy)";
+            tabL.style.color = "#999"; tabL.style.borderBottom = "none";
+        } else {
+            nameField.style.display = 'none';
+            tabL.style.color = "var(--navy)"; tabL.style.borderBottom = "3px solid var(--navy)";
+            tabS.style.color = "#999"; tabS.style.borderBottom = "none";
+        }
+        updateClock();
+    }
+
+    async function handleAuth() {
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
+        const nameIn = document.getElementById('display_name').value.trim();
         const deviceId = getDeviceId();
         const btn = document.getElementById('login-btn');
-        
-        btn.innerText = "Verifying..."; btn.disabled = true;
+
+        if (authMode === 'signup' && (!userIn || !passIn || !nameIn)) {
+            alert("Please fill in all fields."); return;
+        }
+
+        btn.innerText = "Processing..."; btn.disabled = true;
+
         try {
             const response = await fetch(authURL, { 
                 method: 'POST', 
-                body: JSON.stringify({ action: "login_check", username: userIn, password: passIn, deviceId: deviceId }) 
+                body: JSON.stringify({ 
+                    action: authMode === 'signup' ? "signup" : "login_check", 
+                    username: userIn, password: passIn, displayName: nameIn, deviceId: deviceId 
+                }) 
             });
             const result = await response.json();
+            
             if (result.status === "success") {
-                localStorage.setItem('unitech_user_id', userIn);
-                localStorage.setItem('unitech_display_name', result.displayName);
-                localStorage.setItem('unitech_session_active', "true");
-                startMeeting(result.displayName);
+                if (authMode === 'signup') {
+                    alert("Account Created! You can now Login.");
+                    toggleAuthMode('login');
+                } else {
+                    localStorage.setItem('unitech_user_id', userIn);
+                    localStorage.setItem('unitech_display_name', result.displayName);
+                    localStorage.setItem('unitech_session_active', "true");
+                    startMeeting(result.displayName);
+                }
             } else {
-                alert(result.message);
-                btn.disabled = false;
-                updateClock();
+                alert(result.message); btn.disabled = false; updateClock();
             }
         } catch (e) {
-            alert("Network Error.");
-            btn.disabled = false;
+            alert("Connection error."); btn.disabled = false;
         }
     }
 
@@ -320,7 +353,6 @@
         const frame = document.getElementById('meeting-frame');
         header.style.display = 'block'; frame.style.display = 'block';
 
-        // Adjust frame height based on header height
         const headerHeight = header.offsetHeight;
         frame.style.marginTop = headerHeight + 'px';
         frame.style.height = `calc(100vh - ${headerHeight}px)`;
@@ -334,25 +366,13 @@
             width: "100%", height: "100%",
             parentNode: document.querySelector('#meeting-frame'),
             userInfo: { displayName: displayName },
-            configOverwrite: { 
-                startWithAudioMuted: true,
-                prejoinPageEnabled: false,
-                lobby: { enabled: true } 
-            }
-        });
-
-        api.addEventListener('videoConferenceJoined', () => {
-            const userIn = localStorage.getItem('unitech_user_id');
-            if (ALL_BYPASS.includes(userIn)) {
-                api.executeCommand('toggleLobby', true);
-            }
+            configOverwrite: { startWithAudioMuted: true, prejoinPageEnabled: false, lobby: { enabled: true } }
         });
 
         api.addEventListener('videoConferenceLeft', () => {
             inMeeting = false;
             localStorage.removeItem('unitech_session_active');
             if (wakeLock) wakeLock.release();
-            api.dispose();
             window.location.reload();
         });
     }
@@ -404,12 +424,7 @@
         }
     }
 
-    function logout() { 
-        if (api) api.dispose();
-        localStorage.clear(); 
-        window.location.reload(); 
-    }
+    function logout() { localStorage.clear(); window.location.reload(); }
 </script>
 </body>
 </html>
-
