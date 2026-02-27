@@ -153,11 +153,14 @@
             to { top: 25px; opacity: 1; }
         }
 
-        #install-btn-main {
-            background: var(--success);
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-            width: 250px;
-            margin-top: 20px;
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        #recovery-modal input {
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
         }
 
         .spinner {
@@ -174,17 +177,38 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
     </style>
 </head>
 <body>
+
 <div id="custom-alert"></div>
+
+<div id="recovery-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:20001; justify-content:center; align-items:center; backdrop-filter: blur(5px);">
+    <div style="background:white; width:90%; max-width:380px; padding:30px; border-radius:20px; position:relative; animation: slideUp 0.3s ease-out;">
+        <span onclick="closeRecoveryModal()" style="position:absolute; top:15px; right:20px; font-size:24px; cursor:pointer; color:#999;">&times;</span>
+        <h2 style="color:var(--navy); margin-top:0;">Account Recovery</h2>
+        <p style="font-size:13px; color:#666; margin-bottom:20px;">Please verify your identity to reset your password.</p>
+        
+        <div id="recovery-step-1">
+            <input type="text" id="recover-username" placeholder="Username">
+            <button onclick="showRecoveryStep2()" style="background:var(--accent);">Next</button>
+        </div>
+
+        <div id="recovery-step-2" style="display:none;">
+            <p style="font-size:12px; font-weight:bold; color:var(--navy); text-align:left; margin-bottom:5px;">Security Question Answer:</p>
+            <input type="text" id="recover-answer" placeholder="Your Security Answer">
+            <input type="password" id="recover-new-pass" placeholder="New Password">
+            <button id="recover-submit-btn" onclick="submitRecovery()" style="background:var(--success);">Reset Password</button>
+        </div>
+    </div>
+</div>
+
 <div id="install-overlay">
     <span class="close-x" onclick="document.getElementById('install-overlay').style.display='none'">&times;</span>
     <img src="logo.png" style="max-width: 120px; margin-bottom: 20px;">
     <h2>UNGLOBAL Weekly Meeting</h2>
     <p>Install the App to enable background audio & microphone.</p>
-    <button id="install-btn-main">Install App Now</button>
+    <button id="install-btn-main" style="background: var(--success); width:250px;">Install App Now</button>
     <div id="ios-instructions">
         <h4 style="margin:0">iPhone/iPad Users:</h4>
         <ol style="text-align:left; font-size: 14px;">
@@ -243,10 +267,6 @@
     <div id="forgot-password-area" style="margin-top: 15px;">
         <a href="javascript:void(0)" onclick="forgotPassword()" style="color: var(--accent); font-size: 12px; text-decoration: none; font-weight: 600;">Forgot Password?</a>
     </div>
-
-    <div style="background: #f0fff4; color: #22543d; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 11px; text-align: left; border: 1px solid #c6f6d5;">
-        🤖 <strong>System:</strong> New staff must "Sign Up" first.
-    </div>
 </div>
 
 <div id="meeting-frame"></div>
@@ -254,7 +274,7 @@
 <div id="post-meeting-container" style="display: none;">
     <img src="logo.png" alt="Logo" class="logo" style="max-width: 100px; cursor: help;" onclick="revealAdminButton()">
     <h2>Meeting Concluded</h2>
-    <p>Attendance logged. Credentials saved.</p>
+    <p>Attendance logged.</p>
     <button onclick="location.reload()" style="background: var(--success); margin-bottom: 10px;">🔄 Quick Reconnect</button>
     <button id="admin-download-btn" onclick="window.open('https://otter.ai/my-notes')" style="background: var(--success); display:none;">📂 Open Otter.ai</button>
     <br><br>
@@ -275,7 +295,6 @@
     let api = null;
     let inMeeting = false;
     let wakeLock = null;
-    let deferredPrompt;
     let authMode = 'login';
 
     function showAlert(message) {
@@ -283,6 +302,59 @@
         alertBox.innerText = message;
         alertBox.style.display = 'block';
         setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+    }
+
+    // --- RECOVERY MODAL FUNCTIONS ---
+    function forgotPassword() {
+        document.getElementById('recovery-modal').style.display = 'flex';
+        document.getElementById('recovery-step-1').style.display = 'block';
+        document.getElementById('recovery-step-2').style.display = 'none';
+    }
+
+    function closeRecoveryModal() {
+        document.getElementById('recovery-modal').style.display = 'none';
+    }
+
+    function showRecoveryStep2() {
+        const user = document.getElementById('recover-username').value.trim();
+        if (!user) { showAlert("Please enter your username."); return; }
+        document.getElementById('recovery-step-1').style.display = 'none';
+        document.getElementById('recovery-step-2').style.display = 'block';
+    }
+
+    async function submitRecovery() {
+        const user = document.getElementById('recover-username').value.trim();
+        const answer = document.getElementById('recover-answer').value.trim();
+        const newPass = document.getElementById('recover-new-pass').value;
+        const btn = document.getElementById('recover-submit-btn');
+
+        if (!answer || !newPass) { showAlert("Fill in all fields."); return; }
+        btn.innerHTML = '<span class="spinner"></span> Processing...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(authURL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "reset_password",
+                    username: user.toLowerCase(),
+                    securityAnswer: answer.toLowerCase(),
+                    newPassword: newPass
+                })
+            });
+            const result = await response.json();
+            if (result.status === "success") {
+                showAlert("✅ Password Updated!");
+                closeRecoveryModal();
+            } else {
+                showAlert("❌ " + result.message);
+                btn.disabled = false;
+                btn.innerText = "Reset Password";
+            }
+        } catch (e) {
+            showAlert("📡 Connection error.");
+            btn.disabled = false;
+        }
     }
 
     function togglePasswordVisibility() {
@@ -307,12 +379,7 @@
     }
 
     window.onload = () => {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=4');
-        }
-
         const isApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-
         if (isApp) {
             document.getElementById('install-overlay').style.display = 'none';
             const sessionActive = localStorage.getItem('unitech_session_active');
@@ -322,83 +389,49 @@
             if (sessionActive === "true" && savedName) {
                 const now = new Date();
                 const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-                const day = nigeria.getDay(); 
-                const hrs = nigeria.getHours();
-                const mins = nigeria.getMinutes();
-                const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
+                const isMeetingWindow = (nigeria.getDay() === 5) && (nigeria.getHours() > 8 || (nigeria.getHours() === 8 && nigeria.getMinutes() >= 55)) && (nigeria.getHours() < 14);
 
                 if (isMeetingWindow || ALL_BYPASS.includes(userId)) {
                     startMeeting(savedName);
-                } else {
-                    showAlert("Welcome back! The meeting portal is currently locked.");
                 }
             }
         } else {
-            if (localStorage.getItem('app_already_installed') === 'true') {
-                document.body.innerHTML = `<div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#001f3f; color:white; text-align:center; padding:20px;"><img src="logo.png" width="100" style="margin-bottom:20px;"><h2>Portal is Ready</h2><p>Please open the <b>UNGLOBAL</b> app from your home screen.</p></div>`;
-            } else {
-                document.getElementById('install-overlay').style.display = 'flex';
-                if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
-                    document.getElementById('ios-instructions').style.display = 'block';
-                    document.getElementById('install-btn-main').style.display = 'none';
-                }
+            document.getElementById('install-overlay').style.display = 'flex';
+            if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
+                document.getElementById('ios-instructions').style.display = 'block';
+                document.getElementById('install-btn-main').style.display = 'none';
             }
         }
         updateClock();
         setInterval(updateClock, 1000);
-        setInterval(fetchAttendance, 10000); // RESTORED POLLING
+        setInterval(fetchAttendance, 10000);
     };
 
     function updateClock() {
-        if (inMeeting) {
-            const now = new Date();
-            const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-            const userId = localStorage.getItem('unitech_user_id');
-            if (nigeria.getDay() === 5 && nigeria.getHours() >= 14 && !ALL_BYPASS.includes(userId)) {
-                if (api) api.executeCommand('hangup'); 
-            }
-            return;
-        }
-
+        if (inMeeting) return;
         const now = new Date();
         const nigeria = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const day = nigeria.getDay(), hrs = nigeria.getHours(), mins = nigeria.getMinutes();
         const statusBox = document.getElementById('time-status');
         const loginBtn = document.getElementById('login-btn');
-        const adminNote = document.getElementById('admin-note');
         const userIn = document.getElementById('username').value.trim().toLowerCase();
-        const isFriday = (day === 5);
-        const isMeetingWindow = isFriday && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
-
-        if (userIn === SUPER_ADMIN) {
-            adminNote.style.display = 'block';
-            statusBox.style.background = "#fff9db"; statusBox.style.color = "#b8860b";
-            statusBox.innerHTML = "👑 AUTHENTICATED SUPER ADMIN";
-            loginBtn.disabled = false; loginBtn.className = "super-admin-mode";
-            loginBtn.innerText = authMode === 'signup' ? "Create Admin Account" : "Enter Portal";
-            return;
-        } 
         
-        adminNote.style.display = 'none';
-        if (ADMIN_LIST.includes(userIn)) {
-            statusBox.style.background = "#eef6ff"; statusBox.style.color = "#0078d4";
-            statusBox.innerHTML = "🛡️ ADMIN ACCESS GRANTED";
-            loginBtn.disabled = false; loginBtn.className = "admin-mode";
-            loginBtn.innerText = authMode === 'signup' ? "Create Admin Account" : "Enter Portal";
+        const isMeetingWindow = (day === 5) && (hrs > 8 || (hrs === 8 && mins >= 55)) && (hrs < 14);
+
+        if (ALL_BYPASS.includes(userIn)) {
+            statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "🛡️ ADMIN ACCESS GRANTED";
+            loginBtn.disabled = false; loginBtn.innerText = "Enter Portal";
         } else if (authMode === 'signup') {
             statusBox.style.background = "#eef6ff"; statusBox.innerHTML = "📝 REGISTRATION PORTAL OPEN";
-            loginBtn.disabled = false; loginBtn.innerText = "Create My Account"; loginBtn.className = "";
+            loginBtn.disabled = false; loginBtn.innerText = "Create My Account";
         } else {
             if (isMeetingWindow) {
-                statusBox.style.background = "#f0fff4"; statusBox.style.color = "#28a745";
-                statusBox.innerHTML = "✅ MEETING IS LIVE";
+                statusBox.style.background = "#f0fff4"; statusBox.innerHTML = "✅ MEETING IS LIVE";
                 loginBtn.disabled = false; loginBtn.innerText = "Join Meeting";
             } else {
-                statusBox.style.background = "#fff5f5"; statusBox.style.color = "#d9534f";
-                statusBox.innerHTML = (isFriday && hrs >= 14) ? "🔒 MEETING CONCLUDED" : "🔒 LOCKED UNTIL FRIDAY 8:55 AM";
+                statusBox.style.background = "#fff5f5"; statusBox.innerHTML = "🔒 PORTAL LOCKED (FRI 8:55AM)";
                 loginBtn.disabled = true; loginBtn.innerText = "Meeting Locked";
             }
-            loginBtn.className = "";
         }
     }
 
@@ -430,8 +463,8 @@
         const userIn = document.getElementById('username').value.trim().toLowerCase();
         const passIn = document.getElementById('staff-password').value;
         const nameIn = document.getElementById('display_name').value.trim();
-        const confPass = document.getElementById('confirm-password').value;
-        const secAns = document.getElementById('security_answer').value.trim();
+        const confPass = document.getElementById('confirm-password') ? document.getElementById('confirm-password').value : "";
+        const secAns = document.getElementById('security_answer') ? document.getElementById('security_answer').value.trim() : "";
         const deviceId = getDeviceId();
         const btn = document.getElementById('login-btn');
 
@@ -461,42 +494,17 @@
                     localStorage.setItem('unitech_user_id', userIn);
                     localStorage.setItem('unitech_display_name', result.displayName);
                     localStorage.setItem('unitech_session_active', "true");
-                    showAlert("Access Granted. Connecting...");
-                    setTimeout(() => { startMeeting(result.displayName); }, 1000);
+                    startMeeting(result.displayName);
                 }
             } else {
                 showAlert(result.message);
                 btn.disabled = false;
-                btn.innerHTML = (authMode === 'signup' ? "Create My Account" : "Join Meeting");
+                btn.innerHTML = "Try Again";
             }
         } catch (e) {
-            showAlert("Connection error. Try again.");
+            showAlert("Connection error.");
             btn.disabled = false;
         }
-    }
-
-    async function forgotPassword() {
-        const userIn = prompt("Enter your Username:");
-        if (!userIn) return;
-        const answer = prompt("Security Check: Enter your Security Answer:");
-        if (!answer) return;
-        const newPass = prompt("Enter your NEW Password (Min 4 characters):");
-        if (!newPass || newPass.length < 4) { showAlert("Invalid password."); return; }
-
-        showAlert("⏳ Verifying security answer...");
-        try {
-            const response = await fetch(authURL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: "reset_password",
-                    username: userIn.toLowerCase().trim(),
-                    securityAnswer: answer.toLowerCase().trim(),
-                    newPassword: newPass
-                })
-            });
-            const result = await response.json();
-            showAlert(result.status === "success" ? "✅ " + result.message : "❌ " + result.message);
-        } catch (e) { showAlert("📡 Connection error."); }
     }
 
     async function startMeeting(displayName) {
@@ -540,14 +548,14 @@
         const target = prompt("Enter Username to Reset:");
         if (target) {
             await fetch(authURL, { method: 'POST', body: JSON.stringify({ action: "reset_device", username: target.toLowerCase() }) });
-            showAlert("Reset request sent.");
+            showAlert("Reset successful.");
         }
     }
 
     async function clearAttendanceData() {
         if (confirm("Clear attendance?")) {
             await fetch(scriptURL, { method: 'POST', body: JSON.stringify({ action: "clear_attendance" }) });
-            showAlert("Attendance cleared.");
+            showAlert("Cleared.");
         }
     }
 
