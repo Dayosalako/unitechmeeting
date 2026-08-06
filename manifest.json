@@ -1,0 +1,25 @@
+{
+  "short_name": "UNGLOBAL",
+  "name": "UNGLOBAL Staff Meeting Portal",
+  "icons": [
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#001f3f",
+  "display": "standalone",
+  "scope": "./",
+  "theme_color": "#001f3f",
+  "description": "Official Staff Meeting Portal for UNGLOBAL Group",
+  "orientation": "portrait"
+}
